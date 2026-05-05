@@ -1,0 +1,57 @@
+All Rights Reserved (Code) / CC-BY 4.0 (Assets)
+
+================================================================================
+
+Copyright (c) 2026 Leclowndu93150
+
+This project is split into two licensing categories:
+
+--------------------------------------------------------------------------------
+1. Source code, build scripts, and configuration  -  All Rights Reserved
+--------------------------------------------------------------------------------
+
+All Java source code, Gradle build scripts, mixin configurations, JSON config
+files authored by the project owner, and any other non-asset files in this
+repository are proprietary. No part of this code may be copied, modified,
+distributed, sublicensed, sold, or used in any derivative work without prior
+written permission from the copyright holder.
+
+Viewing the source on the hosting platform where it is published is permitted.
+Forking on that platform for the sole purpose of submitting a pull request back
+to the original project is permitted. No other use is granted.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+--------------------------------------------------------------------------------
+2. Bundled image assets and shortcode/remapping data  -  CC-BY 4.0
+--------------------------------------------------------------------------------
+
+The Twemoji emoji and flag sheet textures, the shortcode mapping JSON, the
+emoji remapping JSON, and other resource files derived from the upstream
+PixelTwemojiMC project are licensed under Creative Commons Attribution 4.0
+International (CC-BY 4.0).
+
+These assets are NOT covered by the All Rights Reserved notice above. They
+remain freely usable under CC-BY 4.0 with attribution to the original creators.
+
+Attribution chain:
+
+  - Twemoji graphics
+    Copyright (c) 2018 Twitter, Inc. and other contributors
+    Licensed under Creative Commons Attribution 4.0 International
+    https://creativecommons.org/licenses/by/4.0/
+
+  - Pixel art adaptation and resource pack layout
+    Copyright (c) 2020 Amber (PixelTwemojiMC)
+    Licensed under Creative Commons Attribution 4.0 International
+    https://creativecommons.org/licenses/by/4.0/
+
+The full text of the CC-BY 4.0 license is available at:
+https://creativecommons.org/licenses/by/4.0/legalcode
+
+When redistributing this project (in source or binary form), the asset
+attribution above must be preserved.

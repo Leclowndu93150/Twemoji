@@ -1,0 +1,51 @@
+package com.leclowndu93150.twemoji;
+
+import com.leclowndu93150.twemoji.network.EmojiSyncChunkPayload;
+import com.leclowndu93150.twemoji.network.EmojiSyncEndPayload;
+import com.leclowndu93150.twemoji.network.EmojiSyncStartPayload;
+import com.leclowndu93150.twemoji.server.ServerEmojiLoader;
+import com.leclowndu93150.twemoji.server.ServerEmojiSender;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
+import net.neoforged.neoforge.event.OnDatapackSyncEvent;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
+import net.neoforged.neoforge.network.registration.PayloadRegistrar;
+
+@Mod("twemoji")
+public class TwemojiNeoForge {
+
+    public TwemojiNeoForge(IEventBus modBus, ModContainer container) {
+        modBus.addListener(RegisterPayloadHandlersEvent.class, this::registerPayloads);
+
+        NeoForge.EVENT_BUS.addListener(AddServerReloadListenersEvent.class, event ->
+            event.addListener(Identifier.fromNamespaceAndPath(Twemoji.MOD_ID, "emoji_data"), ServerEmojiLoader.INSTANCE)
+        );
+
+        NeoForge.EVENT_BUS.addListener(OnDatapackSyncEvent.class, event ->
+            event.getRelevantPlayers().forEach(TwemojiNeoForge::sendTo)
+        );
+
+        if (FMLEnvironment.getDist() == Dist.CLIENT) {
+            TwemojiNeoForgeClient.init(modBus);
+        }
+    }
+
+    private void registerPayloads(RegisterPayloadHandlersEvent event) {
+        PayloadRegistrar registrar = event.registrar("1").optional();
+        registrar.playToClient(EmojiSyncStartPayload.TYPE, EmojiSyncStartPayload.STREAM_CODEC);
+        registrar.playToClient(EmojiSyncChunkPayload.TYPE, EmojiSyncChunkPayload.STREAM_CODEC);
+        registrar.playToClient(EmojiSyncEndPayload.TYPE, EmojiSyncEndPayload.STREAM_CODEC);
+    }
+
+    private static void sendTo(ServerPlayer player) {
+        ServerEmojiSender.send(ServerEmojiLoader.INSTANCE.all(), payload -> PacketDistributor.sendToPlayer(player, payload));
+    }
+}

@@ -1,0 +1,27 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.leclowndu93150.twemoji.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [],
+  "client": [
+    "client.chat.ChatScreenMixin",
+    "client.chat.CommandSuggestionsAccessor",
+    "client.chat.CommandSuggestionsMixin",
+    "client.chat.SuggestionsListAccessor",
+    "client.chat.SuggestionsListMixin",
+    "client.font.FontMixin",
+    "client.font.FontPreparedTextBuilderMixin",
+    "client.font.FontSetSourceMixin",
+    "client.input.AbstractSignEditScreenMixin",
+    "client.input.EditBoxMixin",
+    "client.input.MultiLineEditBoxMixin",
+    "client.input.MultilineTextFieldMixin",
+    "client.input.MultilineTextFieldStringViewAccessor",
+    "client.input.ScreenMixin"
+  ],
+  "server": [],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
