@@ -13,6 +13,8 @@ prism {
         license = "All Rights Reserved"
     }
 
+    obfuscate()
+
     version("26.1.2") {
         fabric {
             loaderVersion = "0.19.2"

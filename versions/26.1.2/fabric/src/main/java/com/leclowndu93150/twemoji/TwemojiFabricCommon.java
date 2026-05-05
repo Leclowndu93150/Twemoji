@@ -19,9 +19,9 @@ public class TwemojiFabricCommon implements ModInitializer {
 
     @Override
     public void onInitialize() {
-        PayloadTypeRegistry.playS2C().register(EmojiSyncStartPayload.TYPE, EmojiSyncStartPayload.STREAM_CODEC);
-        PayloadTypeRegistry.playS2C().register(EmojiSyncChunkPayload.TYPE, EmojiSyncChunkPayload.STREAM_CODEC);
-        PayloadTypeRegistry.playS2C().register(EmojiSyncEndPayload.TYPE, EmojiSyncEndPayload.STREAM_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(EmojiSyncStartPayload.TYPE, EmojiSyncStartPayload.STREAM_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(EmojiSyncChunkPayload.TYPE, EmojiSyncChunkPayload.STREAM_CODEC);
+        PayloadTypeRegistry.clientboundPlay().register(EmojiSyncEndPayload.TYPE, EmojiSyncEndPayload.STREAM_CODEC);
 
         Identifier loaderId = Identifier.fromNamespaceAndPath(Twemoji.MOD_ID, "emoji_data");
         ResourceLoader.get(PackType.SERVER_DATA).registerReloadListener(loaderId, ServerEmojiLoader.INSTANCE);

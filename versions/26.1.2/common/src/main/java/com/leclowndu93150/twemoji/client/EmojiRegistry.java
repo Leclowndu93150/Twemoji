@@ -31,6 +31,7 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
 
     private static final Gson GSON = new Gson();
     private static final Identifier SHORTCODES_ID = Identifier.fromNamespaceAndPath("emoji_shortcodes", "lang/en_us.json");
+    private static final Identifier REMAPPINGS_ID = Identifier.fromNamespaceAndPath("emoji_remappings", "lang/en_us.json");
     private static final Identifier EMOJILIB_ID = Identifier.fromNamespaceAndPath("twemoji", "emojilib.json");
     private static final Identifier FONT_ID = Identifier.fromNamespaceAndPath("minecraft", "font/default.json");
     private static final Identifier EMOJI_SHEET = Identifier.fromNamespaceAndPath("twemoji", "textures/font/emoji.png");
@@ -44,6 +45,8 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
     private Map<String, EmojiEntry> syncedStaticEntries = Collections.emptyMap();
     private Map<String, EmojiEntry> combinedEntries = Collections.emptyMap();
     private List<EmojiEntry> customEntries = List.of();
+    private ShapingTable shapingTable = ShapingTable.EMPTY;
+    private Map<Integer, String> puaToRgi = Collections.emptyMap();
     private final Map<Integer, StaticBakedGlyph> syncedStaticGlyphs = new HashMap<>();
     private final List<DynamicTexture> ownedTextures = new ArrayList<>();
 
@@ -134,6 +137,67 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
         this.builtinEntries = data.entries();
         this.builtinCategoryEntries = data.categoryEntries();
         rebuildCombined();
+        rebuildShapingTable(manager);
+    }
+
+    private void rebuildShapingTable(ResourceManager manager) {
+        Map<String, String> remap = loadJson(manager, REMAPPINGS_ID);
+        if (remap.isEmpty()) {
+            this.shapingTable = ShapingTable.EMPTY;
+            this.puaToRgi = Collections.emptyMap();
+            return;
+        }
+        Map<String, Integer> rgiToPua = new HashMap<>();
+        Map<Integer, String> puaToRgi = new HashMap<>();
+        for (Map.Entry<String, String> entry : remap.entrySet()) {
+            String real = entry.getKey();
+            String pua = entry.getValue();
+            if (pua.isEmpty() || real.isEmpty() || real.equals(pua)) continue;
+            int puaCp = pua.codePointAt(0);
+            if (Character.charCount(puaCp) != pua.length()) continue;
+            rgiToPua.putIfAbsent(real, puaCp);
+            puaToRgi.putIfAbsent(puaCp, real);
+        }
+        this.shapingTable = ShapingTable.build(rgiToPua);
+        this.puaToRgi = Map.copyOf(puaToRgi);
+    }
+
+    public ShapingTable shapingTable() {
+        return shapingTable;
+    }
+
+    public String unshape(String text) {
+        StringBuilder out = null;
+        int i = 0;
+        int len = text.length();
+        while (i < len) {
+            int cp = text.codePointAt(i);
+            int width = Character.charCount(cp);
+            String rgi = puaToRgi.get(cp);
+            if (rgi != null) {
+                out = ensureBuilder(out, text, i, len);
+                out.append(rgi);
+            } else if (EmojiData.isDefaultTextPresentation(cp) && !nextIsVS16(text, i + width)) {
+                out = ensureBuilder(out, text, i, len);
+                out.appendCodePoint(cp);
+                out.appendCodePoint(0xFE0F);
+            } else if (out != null) {
+                out.appendCodePoint(cp);
+            }
+            i += width;
+        }
+        return out == null ? text : out.toString();
+    }
+
+    private static StringBuilder ensureBuilder(StringBuilder out, String text, int upTo, int len) {
+        if (out != null) return out;
+        StringBuilder builder = new StringBuilder(len + 8);
+        builder.append(text, 0, upTo);
+        return builder;
+    }
+
+    private static boolean nextIsVS16(String text, int index) {
+        return index < text.length() && text.charAt(index) == 0xFE0F;
     }
 
     public synchronized void applyServerSync(List<SyncedEmoji> staticEmojis) {

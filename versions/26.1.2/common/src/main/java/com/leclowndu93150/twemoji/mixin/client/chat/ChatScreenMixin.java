@@ -73,7 +73,8 @@ public class ChatScreenMixin {
     @Inject(method = "handleChatInput", at = @At("HEAD"), cancellable = true)
     private void twemoji$onHandleChatInput(String msg, boolean addToRecent, CallbackInfo ci) {
         if (twemoji$processingInput) return;
-        String processed = EmojiRegistry.INSTANCE.applyShortcodes(msg, EmojiConfig.get().getSkinTone());
+        String shortcoded = EmojiRegistry.INSTANCE.applyShortcodes(msg, EmojiConfig.get().getSkinTone());
+        String processed = EmojiRegistry.INSTANCE.unshape(shortcoded);
         if (!processed.equals(msg)) {
             ChatScreen self = (ChatScreen)(Object)this;
             ci.cancel();
