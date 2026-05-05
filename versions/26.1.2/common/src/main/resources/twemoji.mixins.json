@@ -16,6 +16,7 @@
     "client.font.FontPreparedTextBuilderMixin",
     "client.font.FontSetSourceMixin",
     "client.input.AbstractSignEditScreenMixin",
+    "client.input.ContainerEventHandlerMixin",
     "client.input.EditBoxMixin",
     "client.input.MultiLineEditBoxMixin",
     "client.input.MultilineTextFieldMixin",

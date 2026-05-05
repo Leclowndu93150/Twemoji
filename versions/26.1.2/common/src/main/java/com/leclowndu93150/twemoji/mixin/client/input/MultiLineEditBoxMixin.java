@@ -2,12 +2,14 @@ package com.leclowndu93150.twemoji.mixin.client.input;
 
 import com.leclowndu93150.twemoji.client.EmojiSuggestionHost;
 import com.leclowndu93150.twemoji.client.EmojiSuggestions;
+import com.leclowndu93150.twemoji.client.EmojiTooltip;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.MultiLineEditBox;
 import net.minecraft.client.gui.components.MultilineTextField;
 import net.minecraft.client.gui.components.Whence;
+import net.minecraft.client.input.MouseButtonEvent;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -44,9 +46,22 @@ public abstract class MultiLineEditBoxMixin implements EmojiSuggestionHost {
         this.textField.seekCursor(Whence.ABSOLUTE, cursor);
     }
 
+    @Inject(method = "onClick", at = @At("HEAD"), cancellable = true)
+    private void twemoji$emojiTooltipClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfo ci) {
+        if (event.button() != 0) return;
+        EmojiTooltip.Hit hit = this.twemoji$emojiTooltipHit((int)event.x(), (int)event.y());
+        if (hit != null && Minecraft.getInstance().screen != null) {
+            EmojiTooltip.click(Minecraft.getInstance().screen, hit);
+            ci.cancel();
+        }
+    }
+
     @Inject(method = "extractContents", at = @At("TAIL"))
     private void twemoji$updateEmojiSuggestions(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a, CallbackInfo ci) {
         MultiLineEditBox self = (MultiLineEditBox)(Object)this;
+        EmojiTooltip.Hit hit = this.twemoji$emojiTooltipHit(mouseX, mouseY);
+        EmojiTooltip.renderHoverHighlight(graphics, hit);
+        EmojiTooltip.requestHoverCursor(graphics, hit);
         if (!self.isFocused() || !self.visible) {
             this.twemoji$suggestions().hide();
             return;
@@ -66,5 +81,21 @@ public abstract class MultiLineEditBoxMixin implements EmojiSuggestionHost {
             lineTop += 9;
         }
         this.twemoji$suggestions().update(value, cursor, anchorX, anchorY, Minecraft.getInstance().getWindow().getGuiScaledWidth());
+    }
+
+    @Unique
+    private EmojiTooltip.Hit twemoji$emojiTooltipHit(int mouseX, int mouseY) {
+        MultiLineEditBox self = (MultiLineEditBox)(Object)this;
+        if (!self.visible) return null;
+        String value = self.getValue();
+        int lineTop = self.getY() + 4 - (int)self.scrollAmount();
+        for (Object lineView : this.textField.iterateLines()) {
+            MultilineTextFieldStringViewAccessor view = (MultilineTextFieldStringViewAccessor)lineView;
+            String line = value.substring(view.twemoji$beginIndex(), view.twemoji$endIndex());
+            EmojiTooltip.Hit hit = EmojiTooltip.hitString(this.font, line, self.getX() + 4, lineTop, 1.0F, 1.0F, mouseX, mouseY);
+            if (hit != null) return hit;
+            lineTop += 9;
+        }
+        return null;
     }
 }

@@ -44,6 +44,7 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
     private Map<String, List<EmojiEntry>> builtinCategoryEntries = Collections.emptyMap();
     private Map<String, EmojiEntry> syncedStaticEntries = Collections.emptyMap();
     private Map<String, EmojiEntry> combinedEntries = Collections.emptyMap();
+    private Map<Integer, EmojiEntry> codepointEntries = Collections.emptyMap();
     private List<EmojiEntry> customEntries = List.of();
     private ShapingTable shapingTable = ShapingTable.EMPTY;
     private Map<Integer, String> puaToRgi = Collections.emptyMap();
@@ -244,6 +245,10 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
         return combinedEntries.get(name);
     }
 
+    public EmojiEntry entryForCodepoint(int codepoint) {
+        return codepointEntries.get(codepoint);
+    }
+
     public EmojiSprite spriteForTone(EmojiEntry entry, int skinTone) {
         EmojiEntry toned = entryForTone(entry, skinTone);
         return toned != null ? toned.spriteForTone(skinTone) : null;
@@ -271,7 +276,18 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
             custom.add(entry);
         }
         this.combinedEntries = combined;
+        this.codepointEntries = buildCodepointEntries(combined.values());
         this.customEntries = List.copyOf(custom);
+    }
+
+    private static Map<Integer, EmojiEntry> buildCodepointEntries(Collection<EmojiEntry> entries) {
+        Map<Integer, EmojiEntry> result = new HashMap<>();
+        for (EmojiEntry entry : entries) {
+            String character = entry.character();
+            if (character.codePointCount(0, character.length()) != 1) continue;
+            result.putIfAbsent(character.codePointAt(0), entry);
+        }
+        return Map.copyOf(result);
     }
 
     public void notifyAnimatedRegistryChanged() {

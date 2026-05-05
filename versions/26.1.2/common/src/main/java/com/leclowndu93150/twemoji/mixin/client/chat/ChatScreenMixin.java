@@ -3,8 +3,11 @@ package com.leclowndu93150.twemoji.mixin.client.chat;
 import com.leclowndu93150.twemoji.client.EmojiConfig;
 import com.leclowndu93150.twemoji.client.EmojiPicker;
 import com.leclowndu93150.twemoji.client.EmojiRegistry;
+import com.leclowndu93150.twemoji.client.EmojiTooltip;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -20,6 +23,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class ChatScreenMixin {
 
     @Shadow protected EditBox input;
+    @Shadow private ChatComponent.DisplayMode displayMode;
 
     @Unique
     private EmojiPicker twemoji$picker;
@@ -48,6 +52,15 @@ public class ChatScreenMixin {
             ChatScreen self = (ChatScreen)(Object)this;
             if (this.twemoji$picker.mouseClicked(event, self.width, self.height, this.input)) {
                 cir.setReturnValue(true);
+                return;
+            }
+        }
+        if (event.button() == 0) {
+            ChatScreen self = (ChatScreen)(Object)this;
+            EmojiTooltip.closeIfOpen(self);
+            EmojiTooltip.Hit hit = this.twemoji$chatMessageHit((int)event.x(), (int)event.y());
+            if (hit != null) {
+                cir.setReturnValue(EmojiTooltip.click(self, hit));
             }
         }
     }
@@ -68,6 +81,11 @@ public class ChatScreenMixin {
             ChatScreen self = (ChatScreen)(Object)this;
             this.twemoji$picker.render(graphics, mouseX, mouseY, self.width, self.height);
         }
+        ChatScreen self = (ChatScreen)(Object)this;
+        EmojiTooltip.Hit hit = this.twemoji$chatMessageHit(mouseX, mouseY);
+        EmojiTooltip.renderHoverHighlight(graphics, hit);
+        EmojiTooltip.requestHoverCursor(graphics, hit);
+        EmojiTooltip.render(self, graphics, self.getFont(), self.width, self.height);
     }
 
     @Inject(method = "handleChatInput", at = @At("HEAD"), cancellable = true)
@@ -119,5 +137,14 @@ public class ChatScreenMixin {
         } finally {
             twemoji$inLiveConvert = false;
         }
+    }
+
+    @Unique
+    private EmojiTooltip.Hit twemoji$chatMessageHit(int mouseX, int mouseY) {
+        ChatScreen self = (ChatScreen)(Object)this;
+        Minecraft minecraft = Minecraft.getInstance();
+        EmojiTooltip.ChatCollector collector = new EmojiTooltip.ChatCollector(self.getFont(), mouseX, mouseY);
+        minecraft.gui.getChat().captureClickableText(collector, minecraft.getWindow().getGuiScaledHeight(), minecraft.gui.getGuiTicks(), this.displayMode);
+        return collector.result();
     }
 }

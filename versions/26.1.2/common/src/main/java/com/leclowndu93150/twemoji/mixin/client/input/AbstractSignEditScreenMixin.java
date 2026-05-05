@@ -4,7 +4,10 @@ import com.leclowndu93150.twemoji.client.EmojiConfig;
 import com.leclowndu93150.twemoji.client.EmojiRegistry;
 import com.leclowndu93150.twemoji.client.EmojiSuggestionHost;
 import com.leclowndu93150.twemoji.client.EmojiSuggestions;
+import com.leclowndu93150.twemoji.client.EmojiTooltip;
+import com.leclowndu93150.twemoji.client.EmojiTooltipHost;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.font.TextFieldHelper;
 import net.minecraft.client.gui.screens.inventory.AbstractSignEditScreen;
@@ -23,7 +26,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(AbstractSignEditScreen.class)
-public abstract class AbstractSignEditScreenMixin implements EmojiSuggestionHost {
+public abstract class AbstractSignEditScreenMixin implements EmojiSuggestionHost, EmojiTooltipHost {
 
     @Shadow @Final protected SignBlockEntity sign;
     @Shadow @Final private String[] messages;
@@ -81,6 +84,9 @@ public abstract class AbstractSignEditScreenMixin implements EmojiSuggestionHost
 
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void twemoji$extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a, CallbackInfo ci) {
+        EmojiTooltip.Hit hit = this.twemoji$emojiTooltipHit(mouseX, mouseY);
+        EmojiTooltip.renderHoverHighlight(graphics, hit);
+        EmojiTooltip.requestHoverCursor(graphics, hit);
         if (this.signField == null) {
             this.twemoji$suggestions().hide();
             return;
@@ -97,5 +103,30 @@ public abstract class AbstractSignEditScreenMixin implements EmojiSuggestionHost
         int y = (int)(this.getSignYOffset() + localY * scale.y());
         this.twemoji$suggestions().update(message, cursor, x, y, ((AbstractSignEditScreen)(Object)this).width);
         this.twemoji$suggestions().render(graphics, mouseX, mouseY);
+        AbstractSignEditScreen self = (AbstractSignEditScreen)(Object)this;
+        EmojiTooltip.render(self, graphics, self.getFont(), self.width, self.height);
+    }
+
+    @Override
+    public EmojiTooltip.Hit twemoji$emojiTooltipHit(int mouseX, int mouseY) {
+        Font font = Minecraft.getInstance().font;
+        AbstractSignEditScreen self = (AbstractSignEditScreen)(Object)this;
+        Vector3f scale = this.getSignTextScale();
+        int lineHeight = this.sign.getTextLineHeight();
+        int signMidpoint = 4 * lineHeight / 2;
+        for (int i = 0; i < this.messages.length; i++) {
+            String message = this.messages[i];
+            if (message == null || message.isEmpty()) continue;
+            if (font.isBidirectional()) {
+                message = font.bidirectionalShaping(message);
+            }
+            int localX = -font.width(message) / 2;
+            int localY = i * lineHeight - signMidpoint;
+            int x = Math.round(self.width / 2.0F + localX * scale.x());
+            int y = Math.round(this.getSignYOffset() + localY * scale.y());
+            EmojiTooltip.Hit hit = EmojiTooltip.hitString(font, message, x, y, scale.x(), scale.y(), mouseX, mouseY);
+            if (hit != null) return hit;
+        }
+        return null;
     }
 }
