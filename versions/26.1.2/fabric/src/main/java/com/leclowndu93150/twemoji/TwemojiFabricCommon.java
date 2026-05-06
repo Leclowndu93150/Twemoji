@@ -30,7 +30,7 @@ public class TwemojiFabricCommon implements ModInitializer {
     }
 
     private static void sendTo(ServerPlayer player) {
-        ServerEmojiSender.send(ServerEmojiLoader.INSTANCE.all(), payload -> ServerPlayNetworking.send(player, payload));
+        ServerEmojiSender.send(ServerEmojiLoader.INSTANCE.all(), ServerEmojiLoader.INSTANCE.categoryIcons(), payload -> ServerPlayNetworking.send(player, payload));
     }
 
     public static void sendToAll(MinecraftServer server) {

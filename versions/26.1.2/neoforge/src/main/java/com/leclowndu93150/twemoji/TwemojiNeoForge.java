@@ -46,6 +46,6 @@ public class TwemojiNeoForge {
     }
 
     private static void sendTo(ServerPlayer player) {
-        ServerEmojiSender.send(ServerEmojiLoader.INSTANCE.all(), payload -> PacketDistributor.sendToPlayer(player, payload));
+        ServerEmojiSender.send(ServerEmojiLoader.INSTANCE.all(), ServerEmojiLoader.INSTANCE.categoryIcons(), payload -> PacketDistributor.sendToPlayer(player, payload));
     }
 }

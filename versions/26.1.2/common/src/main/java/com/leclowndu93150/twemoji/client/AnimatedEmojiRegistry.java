@@ -31,7 +31,7 @@ public final class AnimatedEmojiRegistry {
 
     private AnimatedEmojiRegistry() {}
 
-    public record AnimatedEmoji(String name, int codepoint, List<Identifier> frameTextures, int[] frameSchedule, int frameTimeMs) {
+    public record AnimatedEmoji(String name, int codepoint, List<Identifier> frameTextures, int[] frameSchedule, int frameTimeMs, String category, List<String> aliases) {
         public Identifier currentFrame() {
             int idx = (int) ((System.currentTimeMillis() / frameTimeMs) % frameSchedule.length);
             return frameTextures.get(frameSchedule[idx]);
@@ -88,7 +88,7 @@ public final class AnimatedEmojiRegistry {
         int[] schedule = buildSchedule(meta, frameCount);
         int frameTimeMs = Math.max(1, meta.frametime) * 50;
 
-        return new AnimatedEmoji(emoji.name(), emoji.codepoint(), frameTextures, schedule, frameTimeMs);
+        return new AnimatedEmoji(emoji.name(), emoji.codepoint(), frameTextures, schedule, frameTimeMs, emoji.category(), emoji.aliases());
     }
 
     private static int[] buildSchedule(AnimationMeta meta, int frameCount) {

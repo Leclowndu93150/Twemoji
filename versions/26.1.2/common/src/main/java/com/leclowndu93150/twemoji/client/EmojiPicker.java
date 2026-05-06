@@ -27,7 +27,7 @@ public final class EmojiPicker {
     private static final int EMOJI_SIZE = 16;
     private static final int CATEGORY_ICON_SIZE = 12;
     private static final int CATEGORY_BUTTON_SIZE = 14;
-    private static final int CATEGORY_STEP = 13;
+    private static final int CATEGORY_STEP = 15;
     private static final int BUTTON_SIZE = 9;
     private static final int TONE_BUTTON_SIZE = 18;
     private static final int TONE_OPTION_SIZE = 20;
@@ -48,12 +48,16 @@ public final class EmojiPicker {
 
     private static EmojiPicker activeSearchPicker;
 
+    private sealed interface PickerCategory permits BuiltinCategory, CustomCategory {}
+    private record BuiltinCategory(Category category) implements PickerCategory {}
+    private record CustomCategory(String name) implements PickerCategory {}
+
     private final Font font;
     private boolean open;
     private boolean searchFocused;
     private boolean toneOpen;
     private boolean categoryOpen = true;
-    private Category category = Category.PEOPLE;
+    private PickerCategory selected = new BuiltinCategory(Category.PEOPLE);
     private int scroll;
     private int categoryScroll;
     private String search = "";
@@ -176,9 +180,9 @@ public final class EmojiPicker {
             return true;
         }
 
-        Category clickedCategory = this.categoryAt(mouseX, mouseY, x, y + NAV_HEIGHT);
+        PickerCategory clickedCategory = this.categoryAt(mouseX, mouseY, x, y + NAV_HEIGHT);
         if (clickedCategory != null) {
-            this.category = clickedCategory;
+            this.selected = clickedCategory;
             this.categoryOpen = true;
             this.search = "";
             this.scroll = 0;
@@ -205,7 +209,7 @@ public final class EmojiPicker {
         int panelX = panelX(screenWidth);
         int panelY = panelY(screenHeight);
         if (contains((int)x, (int)y, panelX, panelY + NAV_HEIGHT, CATEGORY_WIDTH, PANEL_HEIGHT - NAV_HEIGHT)) {
-            int maxScroll = Math.max(0, this.categories().size() - visibleCategoryCount());
+            int maxScroll = Math.max(0, this.pickerCategories().size() - visibleCategoryCount());
             this.categoryScroll = Mth.clamp((int)(this.categoryScroll - scrollY), 0, maxScroll);
             return true;
         }
@@ -291,17 +295,17 @@ public final class EmojiPicker {
 
     private void renderCategories(GuiGraphicsExtractor graphics, int mouseX, int mouseY, int x, int y) {
         int cy = y + 3;
-        List<Category> categories = this.categories();
+        List<PickerCategory> categories = this.pickerCategories();
         this.categoryScroll = Mth.clamp(this.categoryScroll, 0, Math.max(0, categories.size() - visibleCategoryCount()));
         int end = Math.min(categories.size(), this.categoryScroll + visibleCategoryCount());
         for (int i = this.categoryScroll; i < end; i++) {
-            Category value = categories.get(i);
-            boolean selected = value == this.category && this.search.isEmpty();
+            PickerCategory value = categories.get(i);
+            boolean isSelected = value.equals(this.selected) && this.search.isEmpty();
             boolean hovered = contains(mouseX, mouseY, x + 4, cy, CATEGORY_BUTTON_SIZE, CATEGORY_BUTTON_SIZE);
-            if (selected || hovered) {
-                graphics.fill(x + 4, cy, x + 4 + CATEGORY_BUTTON_SIZE, cy + CATEGORY_BUTTON_SIZE, selected ? SELECTED_COLOR : HOVER_COLOR);
+            if (isSelected || hovered) {
+                graphics.fill(x + 4, cy, x + 4 + CATEGORY_BUTTON_SIZE, cy + CATEGORY_BUTTON_SIZE, isSelected ? SELECTED_COLOR : HOVER_COLOR);
             }
-            this.renderCategoryIcon(graphics, value, x + 5, cy + 1);
+            this.renderPickerCategoryIcon(graphics, value, x + 5, cy + 1);
             if (hovered) graphics.requestCursor(CursorTypes.POINTING_HAND);
             cy += CATEGORY_STEP;
         }
@@ -312,7 +316,7 @@ public final class EmojiPicker {
         List<EmojiRegistry.EmojiEntry> entries = this.entries();
         int gridX = gridX(x);
         int gridY = gridY(y);
-        String header = this.search.isEmpty() ? this.category.label : "Search";
+        String header = this.search.isEmpty() ? this.selectedLabel() : "Search";
         int headerY = headerY(y);
         graphics.text(this.font, header, gridX, headerY, TEXT_COLOR, false);
         graphics.text(this.font, this.categoryOpen || !this.search.isEmpty() ? "v" : ">", gridX + this.font.width(header) + 5, headerY, MUTED_COLOR, false);
@@ -379,12 +383,12 @@ public final class EmojiPicker {
         }
     }
 
-    private Category categoryAt(int mouseX, int mouseY, int x, int y) {
+    private PickerCategory categoryAt(int mouseX, int mouseY, int x, int y) {
         int cy = y + 3;
-        List<Category> categories = this.categories();
+        List<PickerCategory> categories = this.pickerCategories();
         int end = Math.min(categories.size(), this.categoryScroll + visibleCategoryCount());
         for (int i = this.categoryScroll; i < end; i++) {
-            Category value = categories.get(i);
+            PickerCategory value = categories.get(i);
             if (contains(mouseX, mouseY, x + 4, cy, CATEGORY_BUTTON_SIZE, CATEGORY_BUTTON_SIZE)) return value;
             cy += CATEGORY_STEP;
         }
@@ -432,7 +436,7 @@ public final class EmojiPicker {
         String search = this.search.toLowerCase(Locale.ROOT).replace(" ", "_");
         if (search.isEmpty()) {
             if (!this.categoryOpen) return entries;
-            entries.addAll(this.entriesFor(this.category));
+            entries.addAll(this.entriesFor(this.selected));
             return entries;
         }
         for (EmojiRegistry.EmojiEntry entry : EmojiRegistry.INSTANCE.getEntries().values()) {
@@ -445,18 +449,25 @@ public final class EmojiPicker {
         return entries;
     }
 
-    private List<Category> categories() {
-        List<Category> categories = new ArrayList<>();
-        if (this.hasFrequentEntries()) categories.add(Category.FREQUENT);
-        if (!EmojiRegistry.INSTANCE.getCustomEntries().isEmpty()) categories.add(Category.CUSTOM);
-        categories.add(Category.PEOPLE);
-        categories.add(Category.NATURE);
-        categories.add(Category.FOOD);
-        categories.add(Category.ACTIVITY);
-        categories.add(Category.TRAVEL);
-        categories.add(Category.OBJECTS);
-        categories.add(Category.SYMBOLS);
-        categories.add(Category.FLAGS);
+    private List<PickerCategory> pickerCategories() {
+        List<PickerCategory> categories = new ArrayList<>();
+        if (this.hasFrequentEntries()) categories.add(new BuiltinCategory(Category.FREQUENT));
+        for (String name : EmojiRegistry.INSTANCE.getCustomCategoryEntries().keySet()) {
+            categories.add(new CustomCategory(name));
+        }
+        if (!EmojiRegistry.INSTANCE.getCustomEntries().isEmpty()) {
+            boolean allCategorized = EmojiRegistry.INSTANCE.getCustomCategoryEntries().values().stream()
+                .mapToInt(List::size).sum() >= EmojiRegistry.INSTANCE.getCustomEntries().size();
+            if (!allCategorized) categories.add(new BuiltinCategory(Category.CUSTOM));
+        }
+        categories.add(new BuiltinCategory(Category.PEOPLE));
+        categories.add(new BuiltinCategory(Category.NATURE));
+        categories.add(new BuiltinCategory(Category.FOOD));
+        categories.add(new BuiltinCategory(Category.ACTIVITY));
+        categories.add(new BuiltinCategory(Category.TRAVEL));
+        categories.add(new BuiltinCategory(Category.OBJECTS));
+        categories.add(new BuiltinCategory(Category.SYMBOLS));
+        categories.add(new BuiltinCategory(Category.FLAGS));
         return categories;
     }
 
@@ -468,10 +479,17 @@ public final class EmojiPicker {
         return false;
     }
 
+    private String selectedLabel() {
+        return switch (this.selected) {
+            case BuiltinCategory b -> b.category().label;
+            case CustomCategory c -> c.name();
+        };
+    }
+
     private void normalizeCategory() {
-        List<Category> categories = this.categories();
-        if (!categories.contains(this.category)) {
-            this.category = Category.PEOPLE;
+        List<PickerCategory> categories = this.pickerCategories();
+        if (!categories.contains(this.selected)) {
+            this.selected = new BuiltinCategory(Category.PEOPLE);
             this.categoryOpen = true;
             this.scroll = 0;
         }
@@ -479,14 +497,14 @@ public final class EmojiPicker {
     }
 
     private boolean selectAdjacentCategory(int direction) {
-        List<Category> categories = this.categories();
-        int current = categories.indexOf(this.category);
+        List<PickerCategory> categories = this.pickerCategories();
+        int current = categories.indexOf(this.selected);
         if (current == -1) return false;
         int next = current + direction;
         while (next >= 0 && next < categories.size()) {
-            Category candidate = categories.get(next);
+            PickerCategory candidate = categories.get(next);
             if (!this.entriesFor(candidate).isEmpty()) {
-                this.category = candidate;
+                this.selected = candidate;
                 this.categoryOpen = true;
                 this.ensureCategoryVisible(next);
                 return true;
@@ -497,7 +515,7 @@ public final class EmojiPicker {
     }
 
     private int maxScrollForCurrentCategory() {
-        int rows = (this.entriesFor(this.category).size() + columns() - 1) / columns();
+        int rows = (this.entriesFor(this.selected).size() + columns() - 1) / columns();
         return Math.max(0, rows - visibleRows());
     }
 
@@ -507,10 +525,17 @@ public final class EmojiPicker {
         } else if (index >= this.categoryScroll + visibleCategoryCount()) {
             this.categoryScroll = index - visibleCategoryCount() + 1;
         }
-        this.categoryScroll = Mth.clamp(this.categoryScroll, 0, Math.max(0, this.categories().size() - visibleCategoryCount()));
+        this.categoryScroll = Mth.clamp(this.categoryScroll, 0, Math.max(0, this.pickerCategories().size() - visibleCategoryCount()));
     }
 
-    private List<EmojiRegistry.EmojiEntry> entriesFor(Category category) {
+    private List<EmojiRegistry.EmojiEntry> entriesFor(PickerCategory cat) {
+        return switch (cat) {
+            case BuiltinCategory b -> entriesForBuiltin(b.category());
+            case CustomCategory c -> List.copyOf(EmojiRegistry.INSTANCE.getCustomCategoryEntries().getOrDefault(c.name(), List.of()));
+        };
+    }
+
+    private List<EmojiRegistry.EmojiEntry> entriesForBuiltin(Category category) {
         List<EmojiRegistry.EmojiEntry> entries = new ArrayList<>();
         if (category == Category.FREQUENT) {
             for (String name : EmojiConfig.get().getFrequentEmojis()) {
@@ -529,6 +554,26 @@ public final class EmojiPicker {
         int visible = visibleCategoryCount();
         if (total <= visible) return;
         this.renderScrollbar(graphics, x + CATEGORY_WIDTH - 3, y + 3, PANEL_HEIGHT - NAV_HEIGHT - 6, total, visible, this.categoryScroll, 1);
+    }
+
+    private void renderPickerCategoryIcon(GuiGraphicsExtractor graphics, PickerCategory cat, int x, int y) {
+        switch (cat) {
+            case BuiltinCategory b -> renderCategoryIcon(graphics, b.category(), x, y);
+            case CustomCategory c -> {
+                String iconName = EmojiRegistry.INSTANCE.getCategoryIcons().get(c.name());
+                EmojiRegistry.EmojiEntry iconEntry = iconName != null && !iconName.isBlank()
+                    ? EmojiRegistry.INSTANCE.get(iconName) : null;
+                if (iconEntry == null) {
+                    List<EmojiRegistry.EmojiEntry> entries = EmojiRegistry.INSTANCE.getCustomCategoryEntries().getOrDefault(c.name(), List.of());
+                    iconEntry = entries.isEmpty() ? null : entries.getFirst();
+                }
+                if (iconEntry != null) {
+                    this.renderSprite(graphics, EmojiRegistry.INSTANCE.spriteForTone(iconEntry, 0), x, y, CATEGORY_ICON_SIZE);
+                } else {
+                    graphics.text(this.font, c.name().substring(0, 1).toUpperCase(Locale.ROOT), x + 3, y + 2, MUTED_COLOR, false);
+                }
+            }
+        }
     }
 
     private void renderEmojiScrollbar(GuiGraphicsExtractor graphics, int x, int y, int total) {

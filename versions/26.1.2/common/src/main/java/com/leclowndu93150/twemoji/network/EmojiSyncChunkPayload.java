@@ -16,7 +16,9 @@ public record EmojiSyncChunkPayload(
     String mcmetaJson,
     int pngPartIndex,
     int pngPartTotal,
-    byte[] pngBytes
+    byte[] pngBytes,
+    String category,
+    String aliases
 ) implements CustomPacketPayload {
 
     public static final int MAX_PNG_PART_BYTES = 768 * 1024;
@@ -33,6 +35,8 @@ public record EmojiSyncChunkPayload(
         ByteBufCodecs.VAR_INT, EmojiSyncChunkPayload::pngPartIndex,
         ByteBufCodecs.VAR_INT, EmojiSyncChunkPayload::pngPartTotal,
         ByteBufCodecs.byteArray(MAX_PNG_PART_BYTES), EmojiSyncChunkPayload::pngBytes,
+        ByteBufCodecs.STRING_UTF8, EmojiSyncChunkPayload::category,
+        ByteBufCodecs.STRING_UTF8, EmojiSyncChunkPayload::aliases,
         EmojiSyncChunkPayload::new
     );
 

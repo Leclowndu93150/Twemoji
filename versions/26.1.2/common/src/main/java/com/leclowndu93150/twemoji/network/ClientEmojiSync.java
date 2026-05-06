@@ -1,11 +1,14 @@
 package com.leclowndu93150.twemoji.network;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.leclowndu93150.twemoji.client.AnimatedEmojiRegistry;
 import com.leclowndu93150.twemoji.client.EmojiRegistry;
 import com.leclowndu93150.twemoji.Twemoji;
 
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -14,9 +17,12 @@ public final class ClientEmojiSync {
 
     public static final ClientEmojiSync INSTANCE = new ClientEmojiSync();
 
+    private static final Gson GSON = new Gson();
+
     private long activeSessionId;
     private boolean sessionActive;
     private int expectedTotal;
+    private Map<String, String> pendingCategoryIcons = Map.of();
     private final Map<Integer, EmojiBuilder> builders = new HashMap<>();
 
     private ClientEmojiSync() {}
@@ -26,6 +32,12 @@ public final class ClientEmojiSync {
         sessionActive = true;
         expectedTotal = payload.totalEmojis();
         builders.clear();
+        try {
+            pendingCategoryIcons = GSON.fromJson(payload.categoryIconsJson(), new TypeToken<Map<String, String>>() {}.getType());
+            if (pendingCategoryIcons == null) pendingCategoryIcons = Map.of();
+        } catch (Exception e) {
+            pendingCategoryIcons = Map.of();
+        }
     }
 
     public synchronized void onChunk(EmojiSyncChunkPayload payload) {
@@ -57,18 +69,21 @@ public final class ClientEmojiSync {
             }
             assembled.add(builder.build());
         }
+        Map<String, String> icons = pendingCategoryIcons;
         sessionActive = false;
         builders.clear();
-        applyAtomically(assembled);
+        pendingCategoryIcons = Map.of();
+        applyAtomically(assembled, icons);
     }
 
     public synchronized void onDisconnect() {
         sessionActive = false;
         builders.clear();
-        applyAtomically(List.of());
+        pendingCategoryIcons = Map.of();
+        applyAtomically(List.of(), Map.of());
     }
 
-    private void applyAtomically(List<SyncedEmoji> emojis) {
+    private void applyAtomically(List<SyncedEmoji> emojis, Map<String, String> categoryIcons) {
         List<SyncedEmoji> staticEmojis = new ArrayList<>();
         List<SyncedEmoji> animatedEmojis = new ArrayList<>();
         for (SyncedEmoji e : emojis) {
@@ -76,7 +91,7 @@ public final class ClientEmojiSync {
             else staticEmojis.add(e);
         }
         AnimatedEmojiRegistry.INSTANCE.applyServerSync(animatedEmojis);
-        EmojiRegistry.INSTANCE.applyServerSync(staticEmojis);
+        EmojiRegistry.INSTANCE.applyServerSync(staticEmojis, categoryIcons);
     }
 
     private static final class EmojiBuilder {
@@ -86,6 +101,8 @@ public final class ClientEmojiSync {
         final String mcmetaJson;
         final int totalParts;
         final byte[][] parts;
+        final String category;
+        final List<String> aliases;
         int receivedParts;
 
         EmojiBuilder(EmojiSyncChunkPayload first) {
@@ -95,6 +112,8 @@ public final class ClientEmojiSync {
             this.mcmetaJson = first.mcmetaJson();
             this.totalParts = first.pngPartTotal();
             this.parts = new byte[totalParts][];
+            this.category = first.category();
+            this.aliases = first.aliases().isEmpty() ? List.of() : Arrays.asList(first.aliases().split(","));
         }
 
         void addPart(EmojiSyncChunkPayload payload) {
@@ -111,7 +130,7 @@ public final class ClientEmojiSync {
         SyncedEmoji build() {
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             for (byte[] part : parts) out.writeBytes(part);
-            return new SyncedEmoji(name, codepoint, animated, mcmetaJson, out.toByteArray());
+            return new SyncedEmoji(name, codepoint, animated, mcmetaJson, out.toByteArray(), category, aliases);
         }
     }
 }

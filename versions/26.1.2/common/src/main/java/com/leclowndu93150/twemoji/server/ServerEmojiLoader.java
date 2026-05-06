@@ -1,5 +1,6 @@
 package com.leclowndu93150.twemoji.server;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -38,6 +39,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -55,21 +57,21 @@ public final class ServerEmojiLoader extends SimplePreparableReloadListener<Serv
     public static final int ANIMATED_CODEPOINT_START = 0xF000;
 
     private static final String EMOJI_PATH = "twemoji/emoji";
-    private static final String[] RECIPE_PATHS = {"recipe", "recipes"};
-    private static final String URL_RECIPE_TYPE = "emojiful:emoji_recipe";
     private static final Path URL_CACHE_DIR = Path.of("twemoji_url_cache");
     private static final Duration URL_TIMEOUT = Duration.ofSeconds(10);
     private static final int MAX_PARALLEL_DOWNLOADS = 8;
 
     private volatile List<SyncedEmoji> staticEmojis = List.of();
     private volatile List<SyncedEmoji> animatedEmojis = List.of();
+    private volatile Map<String, String> categoryIcons = Map.of();
 
     private ServerEmojiLoader() {}
 
-    public record LoadedData(List<SyncedEmoji> staticEmojis, List<SyncedEmoji> animatedEmojis) {}
+    public record LoadedData(List<SyncedEmoji> staticEmojis, List<SyncedEmoji> animatedEmojis, Map<String, String> categoryIcons) {}
 
     @Override
     protected LoadedData prepare(ResourceManager manager, ProfilerFiller profiler) {
+        Map<Identifier, Resource> jsonFiles = manager.listResources(EMOJI_PATH, id -> id.getPath().endsWith(".json") && !id.getPath().endsWith("categories.json"));
         Map<Identifier, Resource> pngs = manager.listResources(EMOJI_PATH, id -> id.getPath().endsWith(".png"));
         Map<Identifier, Resource> mcmetas = manager.listResources(EMOJI_PATH, id -> id.getPath().endsWith(".png.mcmeta"));
 
@@ -83,17 +85,91 @@ public final class ServerEmojiLoader extends SimplePreparableReloadListener<Serv
             mcmetaByPng.put(pngId, metaId);
         }
 
-        List<Identifier> sortedPngs = new ArrayList<>(pngs.keySet());
-        sortedPngs.sort(Comparator.comparing(Identifier::toString));
-
+        Map<String, Integer> nameCounts = new HashMap<>();
         List<SyncedEmoji> staticOut = new ArrayList<>();
         List<SyncedEmoji> animatedOut = new ArrayList<>();
-        Map<String, Integer> nameCounts = new HashMap<>();
-
         int nextStaticCodepoint = STATIC_CODEPOINT_START;
         int nextAnimatedCodepoint = ANIMATED_CODEPOINT_START;
 
+        Set<String> claimedByDescriptor = new HashSet<>();
+
+        List<EmojiDescriptor> descriptors = loadDescriptors(manager, jsonFiles);
+        List<String> urlsToFetch = new ArrayList<>();
+        for (EmojiDescriptor d : descriptors) {
+            if (d.url != null) urlsToFetch.add(d.url);
+        }
+        Map<String, FetchedAsset> downloaded = downloadAll(urlsToFetch);
+
+        for (EmojiDescriptor d : descriptors) {
+            byte[] pngBytes = null;
+            boolean animated = false;
+            String mcmeta = "";
+
+            if (d.url != null) {
+                FetchedAsset asset = downloaded.get(d.url);
+                if (asset == null) {
+                    Twemoji.LOGGER.warn("Skipping emoji '{}' — failed to fetch {}", d.name, d.url);
+                    continue;
+                }
+                pngBytes = asset.pngBytes();
+                animated = asset.animated();
+                mcmeta = asset.mcmetaJson();
+            } else if (d.image != null) {
+                Identifier imageId = resolveImageId(d.image);
+                if (imageId == null) {
+                    Twemoji.LOGGER.warn("Skipping emoji '{}' — invalid image reference '{}'", d.name, d.image);
+                    continue;
+                }
+                Optional<Resource> res = manager.getResource(imageId);
+                if (res.isEmpty()) {
+                    Twemoji.LOGGER.warn("Skipping emoji '{}' — image not found: {}", d.name, imageId);
+                    continue;
+                }
+                try (InputStream is = res.get().open()) {
+                    pngBytes = readAll(is);
+                } catch (IOException e) {
+                    Twemoji.LOGGER.warn("Failed to read image for emoji '{}'", d.name, e);
+                    continue;
+                }
+                Identifier pngId = imageId;
+                animated = animatedPngIds.contains(pngId);
+                if (animated) {
+                    Identifier metaId = mcmetaByPng.get(pngId);
+                    if (metaId != null) {
+                        Optional<Resource> metaRes = manager.getResource(metaId);
+                        if (metaRes.isPresent()) {
+                            try (InputStream is = metaRes.get().open()) {
+                                mcmeta = new String(readAll(is), StandardCharsets.UTF_8);
+                            } catch (IOException e) {
+                                Twemoji.LOGGER.warn("Failed to read mcmeta for emoji '{}'", d.name, e);
+                            }
+                        }
+                    }
+                }
+                claimedByDescriptor.add(imageId.toString());
+            } else {
+                Twemoji.LOGGER.warn("Skipping emoji '{}' — descriptor has neither 'url' nor 'image'", d.name);
+                continue;
+            }
+
+            if (d.animated != null) animated = d.animated;
+
+            String chosenName = resolveName(d.name, nameCounts, d.source);
+            List<String> aliases = d.aliases != null ? d.aliases : List.of();
+            String category = d.category != null ? d.category : "";
+
+            if (animated) {
+                animatedOut.add(new SyncedEmoji(chosenName, nextAnimatedCodepoint++, true, mcmeta, pngBytes, category, aliases));
+            } else {
+                staticOut.add(new SyncedEmoji(chosenName, nextStaticCodepoint++, false, "", pngBytes, category, aliases));
+            }
+        }
+
+        List<Identifier> sortedPngs = new ArrayList<>(pngs.keySet());
+        sortedPngs.sort(Comparator.comparing(Identifier::toString));
+
         for (Identifier pngId : sortedPngs) {
+            if (claimedByDescriptor.contains(pngId.toString())) continue;
             String path = pngId.getPath();
             int prefixLen = (EMOJI_PATH + "/").length();
             if (!path.startsWith(EMOJI_PATH + "/")) continue;
@@ -131,72 +207,76 @@ public final class ServerEmojiLoader extends SimplePreparableReloadListener<Serv
             }
         }
 
-        List<UrlRecipe> urlRecipes = loadUrlRecipes(manager);
-        Twemoji.LOGGER.info("Found {} URL emoji recipe(s)", urlRecipes.size());
-        Map<String, FetchedAsset> downloaded = downloadAll(urlRecipes);
-        int registered = 0;
-        for (UrlRecipe recipe : urlRecipes) {
-            FetchedAsset asset = downloaded.get(recipe.url());
-            if (asset == null) {
-                Twemoji.LOGGER.warn("Skipping URL emoji {} (no bytes from {})", recipe.name(), recipe.url());
-                continue;
-            }
-            String chosenName = resolveName(recipe.name(), nameCounts, recipe.source());
-            if (asset.animated()) {
-                animatedOut.add(new SyncedEmoji(chosenName, nextAnimatedCodepoint++, true, asset.mcmetaJson(), asset.pngBytes()));
-            } else {
-                staticOut.add(new SyncedEmoji(chosenName, nextStaticCodepoint++, false, "", asset.pngBytes()));
-            }
-            registered++;
-        }
-        if (!urlRecipes.isEmpty()) {
-            Twemoji.LOGGER.info("Registered {} URL emoji(s) out of {} recipe(s)", registered, urlRecipes.size());
-        }
+        Map<String, String> categoryIcons = loadCategoryIcons(manager);
+        return new LoadedData(staticOut, animatedOut, categoryIcons);
+    }
 
-        return new LoadedData(staticOut, animatedOut);
+    private static List<EmojiDescriptor> loadDescriptors(ResourceManager manager, Map<Identifier, Resource> jsonFiles) {
+        List<Identifier> sorted = new ArrayList<>(jsonFiles.keySet());
+        sorted.sort(Comparator.comparing(Identifier::toString));
+
+        List<EmojiDescriptor> result = new ArrayList<>();
+        for (Identifier id : sorted) {
+            String path = id.getPath();
+            int prefixLen = (EMOJI_PATH + "/").length();
+            if (!path.startsWith(EMOJI_PATH + "/")) continue;
+            String filename = path.substring(prefixLen, path.length() - ".json".length());
+            if (filename.contains("/")) continue;
+
+            try (InputStream is = jsonFiles.get(id).open()) {
+                JsonElement parsed = JsonParser.parseReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+                if (!parsed.isJsonObject()) continue;
+                JsonObject json = parsed.getAsJsonObject();
+
+                EmojiDescriptor d = new EmojiDescriptor();
+                d.source = id;
+                d.name = json.has("name") ? json.get("name").getAsString() : filename;
+                d.url = json.has("url") ? json.get("url").getAsString() : null;
+                d.image = json.has("image") ? json.get("image").getAsString() : null;
+                d.category = json.has("category") ? json.get("category").getAsString() : null;
+                d.animated = json.has("animated") ? json.get("animated").getAsBoolean() : null;
+                if (json.has("aliases")) {
+                    JsonArray arr = json.getAsJsonArray("aliases");
+                    List<String> aliases = new ArrayList<>();
+                    for (JsonElement el : arr) aliases.add(el.getAsString());
+                    d.aliases = aliases;
+                }
+                result.add(d);
+            } catch (Exception e) {
+                Twemoji.LOGGER.warn("Failed to parse emoji descriptor {}", id, e);
+            }
+        }
+        return result;
+    }
+
+    private static Identifier resolveImageId(String image) {
+        if (image.contains(":")) {
+            String[] parts = image.split(":", 2);
+            return Identifier.fromNamespaceAndPath(parts[0], parts[1]);
+        }
+        return null;
     }
 
     private record FetchedAsset(byte[] pngBytes, boolean animated, String mcmetaJson) {}
 
-    private record UrlRecipe(String name, String url, Identifier source) {}
-
-    private static List<UrlRecipe> loadUrlRecipes(ResourceManager manager) {
-        Map<Identifier, Resource> recipes = new HashMap<>();
-        for (String path : RECIPE_PATHS) {
-            recipes.putAll(manager.listResources(path, id -> id.getPath().endsWith(".json")));
-        }
-        Twemoji.LOGGER.info("Scanning {} recipe json file(s) for emoji compat", recipes.size());
-        List<UrlRecipe> result = new ArrayList<>();
-        int matched = 0;
-        int skippedNotEmoji = 0;
-        int skippedMalformed = 0;
-        for (Map.Entry<Identifier, Resource> entry : recipes.entrySet()) {
-            Identifier id = entry.getKey();
-            try (InputStream is = entry.getValue().open()) {
-                JsonElement parsed = JsonParser.parseReader(new InputStreamReader(is, StandardCharsets.UTF_8));
-                if (!parsed.isJsonObject()) { skippedMalformed++; continue; }
-                JsonObject json = parsed.getAsJsonObject();
-                if (!json.has("type") || !URL_RECIPE_TYPE.equals(json.get("type").getAsString())) { skippedNotEmoji++; continue; }
-                if (!json.has("name") || !json.has("url")) { skippedMalformed++; continue; }
-                result.add(new UrlRecipe(json.get("name").getAsString(), json.get("url").getAsString(), id));
-                matched++;
-            } catch (Exception e) {
-                Twemoji.LOGGER.warn("Failed to read recipe {}", id, e);
-            }
-        }
-        Twemoji.LOGGER.info("Recipe scan: {} matched emoji recipes, {} non-emoji, {} malformed", matched, skippedNotEmoji, skippedMalformed);
-        return result;
+    private static class EmojiDescriptor {
+        Identifier source;
+        String name;
+        String url;
+        String image;
+        String category;
+        Boolean animated;
+        List<String> aliases;
     }
 
-    private static Map<String, FetchedAsset> downloadAll(List<UrlRecipe> recipes) {
-        if (recipes.isEmpty()) return Map.of();
+    private static Map<String, FetchedAsset> downloadAll(List<String> urls) {
+        if (urls.isEmpty()) return Map.of();
         try {
             Files.createDirectories(URL_CACHE_DIR);
         } catch (IOException e) {
             Twemoji.LOGGER.warn("Failed to create url cache dir", e);
         }
-        Map<String, UrlRecipe> unique = new HashMap<>();
-        for (UrlRecipe r : recipes) unique.putIfAbsent(r.url(), r);
+        Set<String> unique = new HashSet<>(urls);
         HttpClient client = HttpClient.newBuilder().connectTimeout(URL_TIMEOUT).build();
         ExecutorService pool = Executors.newFixedThreadPool(MAX_PARALLEL_DOWNLOADS, r -> {
             Thread t = new Thread(r, "TwemojiUrlFetch");
@@ -206,12 +286,12 @@ public final class ServerEmojiLoader extends SimplePreparableReloadListener<Serv
         Map<String, FetchedAsset> results = new HashMap<>();
         try {
             List<CompletableFuture<Void>> futures = new ArrayList<>();
-            for (UrlRecipe recipe : unique.values()) {
+            for (String url : unique) {
                 futures.add(CompletableFuture.runAsync(() -> {
-                    FetchedAsset asset = downloadWithCache(client, recipe.url(), recipe.source());
+                    FetchedAsset asset = downloadWithCache(client, url);
                     if (asset != null) {
                         synchronized (results) {
-                            results.put(recipe.url(), asset);
+                            results.put(url, asset);
                         }
                     }
                 }, pool));
@@ -228,7 +308,7 @@ public final class ServerEmojiLoader extends SimplePreparableReloadListener<Serv
         return results;
     }
 
-    private static FetchedAsset downloadWithCache(HttpClient client, String url, Identifier source) {
+    private static FetchedAsset downloadWithCache(HttpClient client, String url) {
         String hash = sha256(url);
         Path cachedPng = URL_CACHE_DIR.resolve(hash + ".png");
         Path cachedMeta = URL_CACHE_DIR.resolve(hash + ".mcmeta");
@@ -238,22 +318,20 @@ public final class ServerEmojiLoader extends SimplePreparableReloadListener<Serv
                 if (isPng(bytes)) {
                     String mcmeta = Files.exists(cachedMeta) ? Files.readString(cachedMeta, StandardCharsets.UTF_8) : "";
                     boolean animated = !mcmeta.isEmpty();
-                    Twemoji.LOGGER.debug("Cache hit: {} ({} bytes, animated={}) for {}", cachedPng.getFileName(), bytes.length, animated, url);
                     return new FetchedAsset(bytes, animated, mcmeta);
                 }
-                Twemoji.LOGGER.info("Cached file {} is not a valid PNG, redownloading", cachedPng.getFileName());
                 Files.deleteIfExists(cachedPng);
                 Files.deleteIfExists(cachedMeta);
             } catch (IOException e) {
-                Twemoji.LOGGER.warn("Failed to read cached emoji {}", cachedPng, e);
+                Twemoji.LOGGER.warn("Failed to read cached emoji for {}", url, e);
             }
         }
         try {
-            Twemoji.LOGGER.info("Downloading emoji from {} (recipe {})", url, source);
+            Twemoji.LOGGER.info("Downloading emoji from {}", url);
             HttpRequest request = HttpRequest.newBuilder(URI.create(url)).timeout(URL_TIMEOUT).GET().build();
             HttpResponse<byte[]> response = client.send(request, HttpResponse.BodyHandlers.ofByteArray());
             if (response.statusCode() / 100 != 2) {
-                Twemoji.LOGGER.warn("Failed to download {} (recipe {}): HTTP {}", url, source, response.statusCode());
+                Twemoji.LOGGER.warn("Failed to download {}: HTTP {}", url, response.statusCode());
                 return null;
             }
             FetchedAsset asset = ensurePng(response.body(), url);
@@ -265,13 +343,12 @@ public final class ServerEmojiLoader extends SimplePreparableReloadListener<Serv
                 } else {
                     Files.deleteIfExists(cachedMeta);
                 }
-                Twemoji.LOGGER.info("Cached {} ({} bytes, animated={}) -> {}", url, asset.pngBytes().length, asset.animated(), cachedPng.getFileName());
             } catch (IOException e) {
-                Twemoji.LOGGER.warn("Failed to write cache {}", cachedPng, e);
+                Twemoji.LOGGER.warn("Failed to write cache for {}", url, e);
             }
             return asset;
         } catch (Exception e) {
-            Twemoji.LOGGER.warn("Failed to download {} (recipe {})", url, source, e);
+            Twemoji.LOGGER.warn("Failed to download {}", url, e);
             return null;
         }
     }
@@ -290,7 +367,6 @@ public final class ServerEmojiLoader extends SimplePreparableReloadListener<Serv
             }
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             ImageIO.write(image, "png", out);
-            Twemoji.LOGGER.info("Converted {} to PNG ({} -> {} bytes)", url, data.length, out.size());
             return new FetchedAsset(out.toByteArray(), false, "");
         } catch (IOException e) {
             Twemoji.LOGGER.warn("Failed to convert {} to PNG", url, e);
@@ -359,7 +435,7 @@ public final class ServerEmojiLoader extends SimplePreparableReloadListener<Serv
             ByteArrayOutputStream pngOut = new ByteArrayOutputStream();
             ImageIO.write(sheet, "png", pngOut);
             String mcmeta = buildMcmeta(delaysCs);
-            Twemoji.LOGGER.info("Converted GIF {} to {}-frame sheet ({}x{}, {} bytes)", url, frameCount, frameSize, frameSize * frameCount, pngOut.size());
+            Twemoji.LOGGER.info("Converted GIF {} to {}-frame sheet", url, frameCount);
             return new FetchedAsset(pngOut.toByteArray(), true, mcmeta);
         } catch (Exception e) {
             Twemoji.LOGGER.warn("Failed to decode GIF {}", url, e);
@@ -422,6 +498,30 @@ public final class ServerEmojiLoader extends SimplePreparableReloadListener<Serv
         return "{\"animation\":{\"frametime\":1,\"frames\":" + frames + "}}";
     }
 
+    private static Map<String, String> loadCategoryIcons(ResourceManager manager) {
+        Map<Identifier, Resource> jsonFiles = manager.listResources("twemoji", id -> id.getPath().endsWith("/categories.json"));
+        Map<String, String> result = new LinkedHashMap<>();
+        List<Identifier> sorted = new ArrayList<>(jsonFiles.keySet());
+        sorted.sort(Comparator.comparing(Identifier::toString));
+        for (Identifier id : sorted) {
+            try (InputStream is = jsonFiles.get(id).open()) {
+                JsonElement parsed = JsonParser.parseReader(new InputStreamReader(is, StandardCharsets.UTF_8));
+                if (!parsed.isJsonArray()) continue;
+                for (JsonElement el : parsed.getAsJsonArray()) {
+                    if (!el.isJsonObject()) continue;
+                    JsonObject obj = el.getAsJsonObject();
+                    if (!obj.has("name")) continue;
+                    String name = obj.get("name").getAsString();
+                    String icon = obj.has("icon") ? obj.get("icon").getAsString() : "";
+                    result.putIfAbsent(name, icon);
+                }
+            } catch (Exception e) {
+                Twemoji.LOGGER.warn("Failed to parse categories.json at {}", id, e);
+            }
+        }
+        return result;
+    }
+
     private static boolean isPng(byte[] data) {
         return data.length >= 8
             && (data[0] & 0xFF) == 0x89 && data[1] == 'P' && data[2] == 'N' && data[3] == 'G'
@@ -470,6 +570,7 @@ public final class ServerEmojiLoader extends SimplePreparableReloadListener<Serv
     protected void apply(LoadedData data, ResourceManager manager, ProfilerFiller profiler) {
         this.staticEmojis = Collections.unmodifiableList(data.staticEmojis());
         this.animatedEmojis = Collections.unmodifiableList(data.animatedEmojis());
+        this.categoryIcons = Map.copyOf(data.categoryIcons());
         Twemoji.LOGGER.info("Loaded {} static and {} animated server emojis", staticEmojis.size(), animatedEmojis.size());
     }
 
@@ -479,6 +580,10 @@ public final class ServerEmojiLoader extends SimplePreparableReloadListener<Serv
 
     public List<SyncedEmoji> animatedEmojis() {
         return animatedEmojis;
+    }
+
+    public Map<String, String> categoryIcons() {
+        return categoryIcons;
     }
 
     public List<SyncedEmoji> all() {
