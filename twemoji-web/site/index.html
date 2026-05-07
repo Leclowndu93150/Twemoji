@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>twemoji :3</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
+        .landing { display: flex; flex-direction: column; gap: 16px; align-items: center; }
+        .landing h1 { font-size: 2.5rem; color: var(--accent2); }
+        .landing p { color: var(--muted); max-width: 400px; line-height: 1.6; }
+        .landing code {
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 10px 18px;
+            font-size: 1rem;
+            color: var(--accent);
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+<div class="landing">
+    <h1>twemoji editor</h1>
+    <p>use the discord bot to get your editor link! type this in any server with the bot:</p>
+    <code>!twemoji &lt;:emoji1:id&gt; &lt;:emoji2:id&gt;</code>
+    <p style="font-size:0.85rem; color: var(--muted);">the bot will send you a link to organize your emojis into categories and export a minecraft datapack</p>
+</div>
+</body>
+</html>

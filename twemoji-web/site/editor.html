@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>emoji pack maker :)</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="corner-doodle tl"><img src="assets/star-sparkles.svg" alt=""></div>
+
+<div id="drag-ghost" class="drag-ghost" style="display:none"></div>
+
+<div id="app">
+    <header>
+        <div class="header-title">
+            <h1>emoji pack maker :)</h1>
+        </div>
+        <div class="header-right">
+            <div class="pack-name-group">
+                <label>pack name:</label>
+                <input class="pack-name-input" id="pack-name" type="text" value="silly_pack" maxlength="32">
+            </div>
+            <button class="icon-btn" id="icon-btn" title="pick pack icon">🎨</button>
+            <div class="icon-picker" id="icon-picker" style="display:none">
+                <div class="icon-picker-title">pick a pack icon!</div>
+                <div class="icon-picker-grid" id="icon-picker-grid"></div>
+            </div>
+            <div class="pack-name-group">
+                <label>mc version:</label>
+                <select class="pack-name-input" id="pack-format" style="width: 110px">
+                    <option value="26.1">26.1</option>
+                    <option value="1.21.1" selected>1.21.1</option>
+                    <option value="1.20.1">1.20.1</option>
+                </select>
+            </div>
+            <button class="export-btn" id="export-btn">EXPORT!</button>
+        </div>
+    </header>
+
+    <div class="main">
+        <div class="sidebar sketch-card">
+            <div class="sidebar-title">all emojis</div>
+            <input class="search-bar" id="search" type="text" placeholder="search...">
+            <div class="emoji-grid" id="emoji-grid"></div>
+            <div class="sidebar-hint">drag n drop!!</div>
+        </div>
+
+        <div class="categories-area" id="categories-area">
+            <button class="add-category-btn" id="add-cat-btn">+ add new category</button>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="editor.js"></script>
+</body>
+</html>
