@@ -6,9 +6,10 @@ import net.minecraft.util.FormattedCharSink;
 public final class ShapingSink implements FormattedCharSink {
 
     private static final int MAX_BUF = 16;
+    private static final ThreadLocal<ShapingSink> POOL = ThreadLocal.withInitial(ShapingSink::new);
 
-    private final FormattedCharSink delegate;
-    private final ShapingTable table;
+    private FormattedCharSink delegate;
+    private ShapingTable table;
     private final int[] bufPositions = new int[MAX_BUF];
     private final Style[] bufStyles = new Style[MAX_BUF];
     private final int[] bufCodepoints = new int[MAX_BUF];
@@ -17,11 +18,40 @@ public final class ShapingSink implements FormattedCharSink {
     private int matchLen;
     private int matchPua;
     private boolean stopped;
+    private boolean inUse;
 
-    public ShapingSink(FormattedCharSink delegate, ShapingTable table) {
+    private ShapingSink() {}
+
+    public static ShapingSink acquire(FormattedCharSink delegate, ShapingTable table) {
+        ShapingSink sink = POOL.get();
+        if (sink.inUse) {
+            ShapingSink fresh = new ShapingSink();
+            fresh.reset(delegate, table);
+            fresh.inUse = true;
+            return fresh;
+        }
+        sink.reset(delegate, table);
+        sink.inUse = true;
+        return sink;
+    }
+
+    private void reset(FormattedCharSink delegate, ShapingTable table) {
         this.delegate = delegate;
         this.table = table;
         this.currentNode = table.root();
+        this.bufLen = 0;
+        this.matchLen = 0;
+        this.matchPua = 0;
+        this.stopped = false;
+        for (int i = 0; i < MAX_BUF; i++) this.bufStyles[i] = null;
+    }
+
+    public void release() {
+        this.delegate = null;
+        this.table = null;
+        this.currentNode = null;
+        for (int i = 0; i < MAX_BUF; i++) this.bufStyles[i] = null;
+        this.inUse = false;
     }
 
     @Override

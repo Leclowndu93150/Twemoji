@@ -18,17 +18,27 @@ public class StringDecomposerMixin {
     private static void twemoji$iterate(String string, Style style, FormattedCharSink output, CallbackInfoReturnable<Boolean> cir) {
         ShapingTable table = EmojiRegistry.INSTANCE.shapingTable();
         if (table.isEmpty() || output instanceof ShapingSink) return;
-        ShapingSink sink = new ShapingSink(output, table);
-        boolean ok = StringDecomposer.iterate(string, style, sink);
-        cir.setReturnValue(ok && sink.finish());
+        if (!table.stringHasCandidate(string)) return;
+        ShapingSink sink = ShapingSink.acquire(output, table);
+        try {
+            boolean ok = StringDecomposer.iterate(string, style, sink);
+            cir.setReturnValue(ok && sink.finish());
+        } finally {
+            sink.release();
+        }
     }
 
     @Inject(method = "iterateFormatted(Ljava/lang/String;ILnet/minecraft/network/chat/Style;Lnet/minecraft/network/chat/Style;Lnet/minecraft/util/FormattedCharSink;)Z", at = @At("HEAD"), cancellable = true)
     private static void twemoji$iterateFormatted(String string, int offset, Style currentStyle, Style resetStyle, FormattedCharSink output, CallbackInfoReturnable<Boolean> cir) {
         ShapingTable table = EmojiRegistry.INSTANCE.shapingTable();
         if (table.isEmpty() || output instanceof ShapingSink) return;
-        ShapingSink sink = new ShapingSink(output, table);
-        boolean ok = StringDecomposer.iterateFormatted(string, offset, currentStyle, resetStyle, sink);
-        cir.setReturnValue(ok && sink.finish());
+        if (!table.stringHasCandidate(string)) return;
+        ShapingSink sink = ShapingSink.acquire(output, table);
+        try {
+            boolean ok = StringDecomposer.iterateFormatted(string, offset, currentStyle, resetStyle, sink);
+            cir.setReturnValue(ok && sink.finish());
+        } finally {
+            sink.release();
+        }
     }
 }

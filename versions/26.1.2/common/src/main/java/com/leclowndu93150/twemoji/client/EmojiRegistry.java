@@ -52,6 +52,13 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
     private Map<Integer, String> puaToRgi = Collections.emptyMap();
     private final Map<Integer, StaticBakedGlyph> syncedStaticGlyphs = new HashMap<>();
     private final List<DynamicTexture> ownedTextures = new ArrayList<>();
+    private String[] suggestionInnerNames = new String[0];
+    private EmojiEntry[] suggestionEntries = new EmojiEntry[0];
+    private long suggestionVersion;
+    private String lastSuggestionPrefix;
+    private int lastSuggestionTone = -1;
+    private long lastSuggestionVersion = -1;
+    private List<EmojiEntry> lastSuggestionResult = List.of();
 
     private static final Map<String, String> EMOTICONS = Map.ofEntries(
         Map.entry(":)", "slight_smile"),
@@ -310,6 +317,22 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
         this.codepointEntries = buildCodepointEntries(combined.values());
         this.customEntries = List.copyOf(custom);
         this.customCategoryEntries = mergedCustomCategories;
+        rebuildSuggestionIndex();
+    }
+
+    private void rebuildSuggestionIndex() {
+        List<EmojiEntry> filtered = new ArrayList<>(combinedEntries.size());
+        List<String> names = new ArrayList<>(combinedEntries.size());
+        for (EmojiEntry entry : combinedEntries.values()) {
+            if (isToneVariant(entry)) continue;
+            filtered.add(entry);
+            names.add(innerName(entry).toLowerCase(Locale.ROOT));
+        }
+        this.suggestionEntries = filtered.toArray(new EmojiEntry[0]);
+        this.suggestionInnerNames = names.toArray(new String[0]);
+        this.suggestionVersion++;
+        this.lastSuggestionPrefix = null;
+        this.lastSuggestionResult = List.of();
     }
 
     private static Map<Integer, EmojiEntry> buildCodepointEntries(Collection<EmojiEntry> entries) {
@@ -328,6 +351,10 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
 
     public StaticBakedGlyph syncedStaticGlyph(int codepoint) {
         return syncedStaticGlyphs.get(codepoint);
+    }
+
+    public boolean hasSyncedStaticGlyphs() {
+        return !syncedStaticGlyphs.isEmpty();
     }
 
     private static Map<String, EmojiSprite> buildCharSpriteMap(ResourceManager manager) {
@@ -451,24 +478,33 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
     }
 
     public String applyShortcodes(String message, int skinTone) {
-        StringBuilder result = new StringBuilder(message);
-        int searchFrom = 0;
-        while (true) {
-            int start = result.indexOf(":", searchFrom);
-            if (start == -1) break;
-            int end = result.indexOf(":", start + 1);
-            if (end == -1) break;
-            String inner = result.substring(start + 1, end);
+        if (message.indexOf(':') < 0) return applyEmoticons(message, skinTone);
+        StringBuilder out = new StringBuilder(message.length());
+        int len = message.length();
+        int i = 0;
+        while (i < len) {
+            int start = message.indexOf(':', i);
+            if (start < 0) {
+                out.append(message, i, len);
+                break;
+            }
+            out.append(message, i, start);
+            int end = message.indexOf(':', start + 1);
+            if (end < 0) {
+                out.append(message, start, len);
+                break;
+            }
+            String inner = message.substring(start + 1, end);
             EmojiEntry entry = combinedEntries.get(inner);
             if (entry != null) {
-                String ch = characterForTone(entry, skinTone);
-                result.replace(start, end + 1, ch);
-                searchFrom = start + ch.length();
+                out.append(characterForTone(entry, skinTone));
+                i = end + 1;
             } else {
-                searchFrom = start + 1;
+                out.append(':');
+                i = start + 1;
             }
         }
-        return applyEmoticons(result.toString(), skinTone);
+        return applyEmoticons(out.toString(), skinTone);
     }
 
     private String applyEmoticons(String message, int skinTone) {
@@ -507,16 +543,25 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
 
     public List<EmojiEntry> getSuggestions(String prefix, int skinTone) {
         String lower = prefix.toLowerCase(Locale.ROOT);
+        if (lower.equals(lastSuggestionPrefix) && skinTone == lastSuggestionTone && suggestionVersion == lastSuggestionVersion) {
+            return lastSuggestionResult;
+        }
+        EmojiEntry[] entries = suggestionEntries;
+        String[] names = suggestionInnerNames;
         List<EmojiEntry> starts = new ArrayList<>();
         List<EmojiEntry> contains = new ArrayList<>();
-        for (EmojiEntry entry : combinedEntries.values()) {
-            if (isToneVariant(entry)) continue;
-            String inner = entry.shortcode().substring(1, entry.shortcode().length() - 1);
-            if (inner.startsWith(lower)) starts.add(entry);
-            else if (inner.contains(lower)) contains.add(entry);
+        for (int i = 0; i < entries.length; i++) {
+            String name = names[i];
+            if (name.startsWith(lower)) starts.add(entries[i]);
+            else if (name.contains(lower)) contains.add(entries[i]);
         }
         starts.addAll(contains);
-        return starts;
+        List<EmojiEntry> result = List.copyOf(starts);
+        this.lastSuggestionPrefix = lower;
+        this.lastSuggestionTone = skinTone;
+        this.lastSuggestionVersion = suggestionVersion;
+        this.lastSuggestionResult = result;
+        return result;
     }
 
     public List<EmojiEntry> getCategoryEntries(String category) {

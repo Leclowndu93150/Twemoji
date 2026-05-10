@@ -10,7 +10,11 @@ public class EmojiSuggestion extends Suggestion {
     private final int skinTone;
 
     public EmojiSuggestion(StringRange range, EmojiRegistry.EmojiEntry entry, int skinTone) {
-        super(range, entry.shortcode());
+        this(range, entry, skinTone, entry.shortcode());
+    }
+
+    public EmojiSuggestion(StringRange range, EmojiRegistry.EmojiEntry entry, int skinTone, String text) {
+        super(range, text);
         this.entry = entry;
         this.skinTone = skinTone;
     }

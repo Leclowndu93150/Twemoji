@@ -84,6 +84,8 @@ public abstract class EditBoxMixin implements EmojiSuggestionHost {
     private EmojiTooltip.Hit twemoji$emojiTooltipHit(int mouseX, int mouseY) {
         EditBox self = (EditBox)(Object)this;
         if (!self.isVisible()) return null;
+        if (mouseX < self.getX() || mouseX >= self.getX() + self.getWidth()
+            || mouseY < self.getY() || mouseY >= self.getY() + self.getHeight()) return null;
         String value = self.getValue();
         if (this.displayPos > value.length()) return null;
         String displayed = this.font.plainSubstrByWidth(value.substring(this.displayPos), self.getInnerWidth());

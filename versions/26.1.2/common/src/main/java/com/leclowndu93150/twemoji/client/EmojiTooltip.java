@@ -180,20 +180,26 @@ public final class EmojiTooltip {
         @Override
         public void accept(TextAlignment alignment, int anchorX, int y, ActiveTextCollector.Parameters parameters, FormattedCharSequence text) {
             if (this.result != null) return;
-            int leftX = alignment.calculateLeft(anchorX, this.font, text);
-            Vector2f localMouse = parameters.pose().invert(new Matrix3x2f()).transformPosition(this.mouseX, this.mouseY, new Vector2f());
             if (parameters.scissor() != null && !parameters.scissor().containsPoint(this.mouseX, this.mouseY)) return;
+            Matrix3x2f inverse = parameters.pose().invert(new Matrix3x2f());
+            Vector2f localMouse = inverse.transformPosition(this.mouseX, this.mouseY, new Vector2f());
             if (localMouse.y() < y || localMouse.y() >= y + 9) return;
+            int leftX = alignment.calculateLeft(anchorX, this.font, text);
 
             int[] cursorX = {leftX};
             text.accept((position, style, codepoint) -> {
                 if (this.result != null) return false;
-                int width = Math.max(1, this.font.width(FormattedCharSequence.forward(new String(Character.toChars(codepoint)), style)));
                 EmojiRegistry.EmojiEntry candidate = EmojiRegistry.INSTANCE.entryForCodepoint(codepoint);
-                if (candidate != null && localMouse.x() >= cursorX[0] && localMouse.x() < cursorX[0] + width) {
-                    ScreenRectangle bounds = new ScreenRectangle(cursorX[0], y, width, 9).transformMaxBounds(parameters.pose());
-                    this.result = new Hit(candidate, bounds.left(), bounds.top(), bounds.right(), bounds.bottom());
-                    return false;
+                int width;
+                if (candidate != null) {
+                    width = Math.max(1, this.font.width(FormattedCharSequence.forward(new String(Character.toChars(codepoint)), style)));
+                    if (localMouse.x() >= cursorX[0] && localMouse.x() < cursorX[0] + width) {
+                        ScreenRectangle bounds = new ScreenRectangle(cursorX[0], y, width, 9).transformMaxBounds(parameters.pose());
+                        this.result = new Hit(candidate, bounds.left(), bounds.top(), bounds.right(), bounds.bottom());
+                        return false;
+                    }
+                } else {
+                    width = Math.max(1, this.font.width(FormattedCharSequence.forward(new String(Character.toChars(codepoint)), style)));
                 }
                 cursorX[0] += width;
                 return true;

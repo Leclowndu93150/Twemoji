@@ -5,6 +5,7 @@
   "name": "${mod_name}",
   "description": "${description}",
   "license": "${license}",
+  "icon": "icon.png",
   "entrypoints": {
     "main": [
       "com.leclowndu93150.twemoji.TwemojiFabricCommon"
@@ -14,7 +15,8 @@
     ]
   },
   "mixins": [
-    "${mod_id}.mixins.json"
+    "${mod_id}.mixins.json",
+    "${mod_id}.fabric.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=${fabric_loader_version}",

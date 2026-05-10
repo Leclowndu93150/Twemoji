@@ -32,6 +32,16 @@ public class SuggestionsListMixin {
     private static final int EMOJI_COL = EMOJI_SIZE + EMOJI_PAD;
     private static final int MAX_LABEL_WIDTH = 120;
 
+    @Inject(method = "<init>", at = @At("TAIL"))
+    private void twemoji$widenForEmojiSuggestions(CommandSuggestions outer, int x, int y, int width, List<Suggestion> suggestionList, boolean immediateNarration, CallbackInfo ci) {
+        for (Suggestion suggestion : suggestionList) {
+            if (suggestion instanceof EmojiSuggestion) {
+                ((SuggestionsListAccessor)(Object)this).getRect().setWidth(EMOJI_COL + MAX_LABEL_WIDTH + 1);
+                return;
+            }
+        }
+    }
+
     @Inject(method = "useSuggestion", at = @At("TAIL"))
     private void twemoji$onUseSuggestion(CallbackInfo ci) {
         if (!(suggestionList.get(current) instanceof EmojiSuggestion)) return;

@@ -87,13 +87,17 @@ public abstract class MultiLineEditBoxMixin implements EmojiSuggestionHost {
     private EmojiTooltip.Hit twemoji$emojiTooltipHit(int mouseX, int mouseY) {
         MultiLineEditBox self = (MultiLineEditBox)(Object)this;
         if (!self.visible) return null;
+        if (mouseX < self.getX() || mouseX >= self.getX() + self.getWidth()
+            || mouseY < self.getY() || mouseY >= self.getY() + self.getHeight()) return null;
         String value = self.getValue();
         int lineTop = self.getY() + 4 - (int)self.scrollAmount();
         for (Object lineView : this.textField.iterateLines()) {
             MultilineTextFieldStringViewAccessor view = (MultilineTextFieldStringViewAccessor)lineView;
-            String line = value.substring(view.twemoji$beginIndex(), view.twemoji$endIndex());
-            EmojiTooltip.Hit hit = EmojiTooltip.hitString(this.font, line, self.getX() + 4, lineTop, 1.0F, 1.0F, mouseX, mouseY);
-            if (hit != null) return hit;
+            if (mouseY >= lineTop && mouseY < lineTop + 9) {
+                String line = value.substring(view.twemoji$beginIndex(), view.twemoji$endIndex());
+                EmojiTooltip.Hit hit = EmojiTooltip.hitString(this.font, line, self.getX() + 4, lineTop, 1.0F, 1.0F, mouseX, mouseY);
+                if (hit != null) return hit;
+            }
             lineTop += 9;
         }
         return null;

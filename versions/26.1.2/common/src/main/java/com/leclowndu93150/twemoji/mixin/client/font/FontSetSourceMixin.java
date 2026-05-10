@@ -17,6 +17,7 @@ public class FontSetSourceMixin {
 
     @Inject(method = "getGlyph(I)Lnet/minecraft/client/gui/font/glyphs/BakedGlyph;", at = @At("HEAD"), cancellable = true)
     private void twemoji$injectCustomGlyph(int codepoint, CallbackInfoReturnable<BakedGlyph> cir) {
+        if (!AnimatedEmojiRegistry.INSTANCE.hasAny() && !EmojiRegistry.INSTANCE.hasSyncedStaticGlyphs()) return;
         AnimatedBakedGlyph animated = AnimatedEmojiRegistry.INSTANCE.bakedGlyph(codepoint);
         if (animated != null) {
             cir.setReturnValue(animated);

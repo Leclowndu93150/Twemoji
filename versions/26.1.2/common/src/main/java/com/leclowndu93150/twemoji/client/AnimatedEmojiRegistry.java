@@ -153,6 +153,10 @@ public final class AnimatedEmojiRegistry {
         return bakedGlyphs.get(codepoint);
     }
 
+    public boolean hasAny() {
+        return !bakedGlyphs.isEmpty();
+    }
+
     private void clearTextures() {
         byCodepoint.clear();
         byName.clear();
