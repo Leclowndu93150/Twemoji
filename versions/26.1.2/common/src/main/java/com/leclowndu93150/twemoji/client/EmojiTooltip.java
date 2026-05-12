@@ -44,7 +44,7 @@ public final class EmojiTooltip {
         EmojiRegistry.EmojiEntry entry = hit.entry();
         String shortcode = entry.shortcode();
         boolean showCopied = copiedEntry == entry && Util.getMillis() - copiedAtMs < COPY_FLASH_MS;
-        String label = showCopied ? "Copied " + shortcode : shortcode;
+        String label = showCopied ? Component.translatable("twemoji.picker.copied", shortcode).getString() : shortcode;
         int textWidth = Math.min(font.width(label), MAX_TEXT_WIDTH);
         int width = Math.max(MIN_WIDTH, PADDING * 2 + EMOJI_SIZE + GAP + textWidth);
         int anchorX = hit.centerX();
@@ -63,7 +63,7 @@ public final class EmojiTooltip {
         int labelColor = showCopied ? 0xFF8AE08A : TEXT_COLOR;
         graphics.text(font, trimToWidth(font, label, width - PADDING * 2 - EMOJI_SIZE - GAP), x + PADDING + EMOJI_SIZE + GAP, y + 11, labelColor, false);
 
-        String name = showCopied ? "Click to copy" : EmojiRegistry.innerName(entry);
+        String name = showCopied ? Component.translatable("twemoji.picker.copy_to_clipboard").getString() : EmojiRegistry.innerName(entry);
         graphics.text(font, trimToWidth(font, name, width - PADDING * 2 - EMOJI_SIZE - GAP), x + PADDING + EMOJI_SIZE + GAP, y + 22, MUTED_COLOR, false);
     }
 

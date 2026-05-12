@@ -4,6 +4,7 @@ import com.leclowndu93150.twemoji.client.EmojiConfig;
 import com.leclowndu93150.twemoji.client.EmojiPicker;
 import com.leclowndu93150.twemoji.client.EmojiRegistry;
 import com.leclowndu93150.twemoji.client.EmojiTooltip;
+import com.leclowndu93150.twemoji.client.TwemojiKeyMappings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
@@ -41,7 +42,7 @@ public class ChatScreenMixin {
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void twemoji$keyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
-        if (this.twemoji$picker != null && event.input() == 69 && event.hasControlDownWithQuirk() && !event.hasShiftDown() && !event.hasAltDown()) {
+        if (this.twemoji$picker != null && event.hasControlDownWithQuirk() && TwemojiKeyMappings.OPEN_PICKER.matches(event)) {
             this.twemoji$picker.toggle();
             if (this.twemoji$picker.isOpen()) {
                 this.twemoji$picker.attachInput(this.input);

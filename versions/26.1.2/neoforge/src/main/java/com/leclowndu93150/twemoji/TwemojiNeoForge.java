@@ -3,6 +3,7 @@ package com.leclowndu93150.twemoji;
 import com.leclowndu93150.twemoji.network.EmojiSyncChunkPayload;
 import com.leclowndu93150.twemoji.network.EmojiSyncEndPayload;
 import com.leclowndu93150.twemoji.network.EmojiSyncStartPayload;
+import com.leclowndu93150.twemoji.server.EmojiUploadCommand;
 import com.leclowndu93150.twemoji.server.ServerEmojiLoader;
 import com.leclowndu93150.twemoji.server.ServerEmojiSender;
 import net.minecraft.resources.Identifier;
@@ -15,6 +16,7 @@ import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
 import net.neoforged.neoforge.event.OnDatapackSyncEvent;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
@@ -31,6 +33,10 @@ public class TwemojiNeoForge {
 
         NeoForge.EVENT_BUS.addListener(OnDatapackSyncEvent.class, event ->
             event.getRelevantPlayers().forEach(TwemojiNeoForge::sendTo)
+        );
+
+        NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, event ->
+            event.getDispatcher().register(EmojiUploadCommand.build((server, player) -> sendTo(player)))
         );
 
         if (FMLEnvironment.getDist() == Dist.CLIENT) {

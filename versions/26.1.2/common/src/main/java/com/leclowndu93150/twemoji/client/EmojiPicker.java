@@ -8,6 +8,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.network.chat.Component;
 import net.minecraft.util.Mth;
 import net.minecraft.util.Util;
 
@@ -103,26 +104,50 @@ public final class EmojiPicker {
         this.searchFocused = true;
     }
 
+    private void renderButtonTooltip(GuiGraphicsExtractor graphics, int buttonX, int buttonY, int screenWidth) {
+        String binding = TwemojiKeyMappings.OPEN_PICKER.getTranslatedKeyMessage().getString();
+        String text = binding.isEmpty()
+            ? Component.translatable("twemoji.picker.button.tooltip").getString()
+            : Component.translatable("twemoji.picker.button.tooltip.keybind", "Ctrl+" + binding).getString();
+        int textW = this.font.width(text);
+        int padding = 4;
+        int boxW = textW + padding * 2;
+        int boxH = 12;
+        int x = Math.min(buttonX + BUTTON_SIZE - boxW, screenWidth - boxW - 2);
+        if (x < 2) x = 2;
+        int y = buttonY - boxH - 3;
+        if (y < 2) y = buttonY + BUTTON_SIZE + 3;
+        graphics.fill(x, y, x + boxW, y + boxH, PANEL_COLOR);
+        drawBorder(graphics, x, y, boxW, boxH, BORDER_COLOR);
+        graphics.text(this.font, text, x + padding, y + 2, TEXT_COLOR, false);
+    }
+
     public static boolean handleActiveSearchChar(EditBox input, CharacterEvent event) {
         return activeSearchPicker != null && activeSearchPicker.searchOwner == input && activeSearchPicker.charTyped(event);
     }
 
     public void render(GuiGraphicsExtractor graphics, int mouseX, int mouseY, int screenWidth, int screenHeight) {
+        boolean buttonVisible = EmojiConfig.get().isPickerButtonVisible();
         int buttonX = buttonX(screenWidth);
         int buttonY = buttonY(screenHeight);
-        boolean buttonHovered = contains(mouseX, mouseY, buttonX, buttonY, BUTTON_SIZE, BUTTON_SIZE);
-        if (buttonHovered || this.open) {
-            graphics.fill(buttonX - 1, buttonY, buttonX + BUTTON_SIZE + 1, buttonY + BUTTON_SIZE, HOVER_COLOR);
+        boolean buttonHovered = buttonVisible && contains(mouseX, mouseY, buttonX, buttonY, BUTTON_SIZE, BUTTON_SIZE);
+        if (buttonVisible) {
+            if (buttonHovered || this.open) {
+                graphics.fill(buttonX - 1, buttonY, buttonX + BUTTON_SIZE + 1, buttonY + BUTTON_SIZE, HOVER_COLOR);
+            }
+            EmojiRegistry.EmojiEntry smiley = EmojiRegistry.INSTANCE.get("smiley");
+            if (smiley != null) {
+                this.renderSprite(graphics, EmojiRegistry.INSTANCE.spriteForTone(smiley, 0), buttonX, buttonY, BUTTON_SIZE);
+            } else {
+                renderFace(graphics, buttonX, buttonY, BUTTON_SIZE, 0xFFFFD84D, 0xFF2B2D31);
+            }
+            if (buttonHovered) graphics.requestCursor(CursorTypes.POINTING_HAND);
         }
-        EmojiRegistry.EmojiEntry smiley = EmojiRegistry.INSTANCE.get("smiley");
-        if (smiley != null) {
-            this.renderSprite(graphics, EmojiRegistry.INSTANCE.spriteForTone(smiley, 0), buttonX, buttonY, BUTTON_SIZE);
-        } else {
-            renderFace(graphics, buttonX, buttonY, BUTTON_SIZE, 0xFFFFD84D, 0xFF2B2D31);
-        }
-        if (buttonHovered) graphics.requestCursor(CursorTypes.POINTING_HAND);
 
-        if (!this.open) return;
+        if (!this.open) {
+            if (buttonHovered) this.renderButtonTooltip(graphics, buttonX, buttonY, screenWidth);
+            return;
+        }
 
         int x = panelX(screenWidth);
         int y = panelY(screenHeight);
@@ -150,7 +175,8 @@ public final class EmojiPicker {
     public boolean mouseClicked(MouseButtonEvent event, int screenWidth, int screenHeight, EditBox input) {
         int mouseX = (int)event.x();
         int mouseY = (int)event.y();
-        if (contains(mouseX, mouseY, buttonX(screenWidth) - 1, buttonY(screenHeight), BUTTON_SIZE + 2, BUTTON_SIZE)) {
+        if (EmojiConfig.get().isPickerButtonVisible()
+            && contains(mouseX, mouseY, buttonX(screenWidth) - 1, buttonY(screenHeight), BUTTON_SIZE + 2, BUTTON_SIZE)) {
             this.toggle();
             this.searchOwner = this.open ? input : null;
             activeSearchPicker = this.open ? this : null;
@@ -377,7 +403,7 @@ public final class EmojiPicker {
         List<EmojiRegistry.EmojiEntry> entries = this.entries();
         int gridX = gridX(x);
         int gridY = gridY(y);
-        String header = this.search.isEmpty() ? this.selectedLabel() : "Search";
+        String header = this.search.isEmpty() ? this.selectedLabel() : Component.translatable("twemoji.picker.search_header").getString();
         int headerY = headerY(y);
         graphics.text(this.font, header, gridX, headerY, TEXT_COLOR, false);
         graphics.text(this.font, this.categoryOpen || !this.search.isEmpty() ? "v" : ">", gridX + this.font.width(header) + 5, headerY, MUTED_COLOR, false);
@@ -422,7 +448,7 @@ public final class EmojiPicker {
     }
 
     private String searchPlaceholder() {
-        if (this.hoveredEntry == null) return "Find the perfect emoji";
+        if (this.hoveredEntry == null) return Component.translatable("twemoji.picker.search.placeholder").getString();
         String shortcode = this.hoveredEntry.shortcode();
         return shortcode.length() > 2 ? shortcode.substring(1, shortcode.length() - 1) : shortcode;
     }
@@ -546,7 +572,7 @@ public final class EmojiPicker {
 
     private String selectedLabel() {
         return switch (this.selected) {
-            case BuiltinCategory b -> b.category().label;
+            case BuiltinCategory b -> b.category().label();
             case CustomCategory c -> c.name();
         };
     }
@@ -673,7 +699,7 @@ public final class EmojiPicker {
             this.renderSprite(graphics, EmojiRegistry.INSTANCE.spriteForTone(entry, 0), x, y, CATEGORY_ICON_SIZE);
             return;
         }
-        graphics.text(this.font, category.label.substring(0, 1), x + 3, y + 2, MUTED_COLOR, false);
+        graphics.text(this.font, category.label().substring(0, 1), x + 3, y + 2, MUTED_COLOR, false);
     }
 
     private void renderSprite(GuiGraphicsExtractor graphics, EmojiSprite sprite, int x, int y, int size) {
@@ -790,25 +816,29 @@ public final class EmojiPicker {
     }
 
     private enum Category {
-        FREQUENT("frequent", "Frequently Used", "clock3"),
-        CUSTOM("custom", "Custom", "sparkles"),
-        PEOPLE("people", "People", "smiley"),
-        NATURE("nature", "Nature", "deciduous_tree"),
-        FOOD("food", "Food", "hamburger"),
-        ACTIVITY("activities", "Activity", "soccer"),
-        TRAVEL("travel", "Travel", "red_car"),
-        OBJECTS("objects", "Objects", "bulb"),
-        SYMBOLS("symbols", "Symbols", "heart"),
-        FLAGS("flags", "Flags", "triangular_flag_on_post");
+        FREQUENT("frequent", "twemoji.picker.category.frequent", "clock3"),
+        CUSTOM("custom", "twemoji.picker.category.custom", "sparkles"),
+        PEOPLE("people", "twemoji.picker.category.people", "smiley"),
+        NATURE("nature", "twemoji.picker.category.nature", "deciduous_tree"),
+        FOOD("food", "twemoji.picker.category.food", "hamburger"),
+        ACTIVITY("activities", "twemoji.picker.category.activity", "soccer"),
+        TRAVEL("travel", "twemoji.picker.category.travel", "red_car"),
+        OBJECTS("objects", "twemoji.picker.category.objects", "bulb"),
+        SYMBOLS("symbols", "twemoji.picker.category.symbols", "heart"),
+        FLAGS("flags", "twemoji.picker.category.flags", "triangular_flag_on_post");
 
         private final String id;
-        private final String label;
+        private final String labelKey;
         private final String iconName;
 
-        Category(String id, String label, String iconName) {
+        Category(String id, String labelKey, String iconName) {
             this.id = id;
-            this.label = label;
+            this.labelKey = labelKey;
             this.iconName = iconName;
+        }
+
+        String label() {
+            return Component.translatable(labelKey).getString();
         }
     }
 }

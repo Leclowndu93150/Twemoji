@@ -3,15 +3,19 @@ package com.leclowndu93150.twemoji;
 import com.leclowndu93150.twemoji.client.EmojiCommandSuggestions;
 import com.leclowndu93150.twemoji.client.EmojiConfig;
 import com.leclowndu93150.twemoji.client.EmojiExporter;
+import com.leclowndu93150.twemoji.client.EmojiRain;
 import com.leclowndu93150.twemoji.client.EmojiRegistry;
+import com.leclowndu93150.twemoji.client.TwemojiKeyMappings;
 import com.leclowndu93150.twemoji.network.ClientEmojiSync;
 import com.leclowndu93150.twemoji.network.EmojiSyncChunkPayload;
 import com.leclowndu93150.twemoji.network.EmojiSyncEndPayload;
 import com.leclowndu93150.twemoji.network.EmojiSyncStartPayload;
+import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import java.nio.file.Path;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.ClickEvent;
@@ -22,8 +26,10 @@ import net.minecraft.resources.Identifier;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.RegisterClientCommandsEvent;
+import net.neoforged.neoforge.client.event.RenderGuiEvent;
 import net.neoforged.neoforge.client.network.event.RegisterClientPayloadHandlersEvent;
 import net.neoforged.neoforge.client.resources.VanillaClientListeners;
 import net.neoforged.neoforge.common.NeoForge;
@@ -41,12 +47,20 @@ public final class TwemojiNeoForgeClient {
             event.addDependency(VanillaClientListeners.FONTS, emojiRegistryId);
         });
 
+        modBus.addListener(RegisterKeyMappingsEvent.class, event -> event.register(TwemojiKeyMappings.OPEN_PICKER));
+
         modBus.addListener(RegisterClientPayloadHandlersEvent.class, event -> {
             event.register(EmojiSyncStartPayload.TYPE, (payload, ctx) -> ClientEmojiSync.INSTANCE.onStart(payload));
             event.register(EmojiSyncChunkPayload.TYPE, (payload, ctx) -> ClientEmojiSync.INSTANCE.onChunk(payload));
             event.register(EmojiSyncEndPayload.TYPE, (payload, ctx) -> ClientEmojiSync.INSTANCE.onEnd(payload));
         });
 
+        NeoForge.EVENT_BUS.addListener(RenderGuiEvent.Post.class, event -> {
+            Minecraft client = Minecraft.getInstance();
+            EmojiRain.render(event.getGuiGraphics(), client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight());
+        });
+
+        NeoForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingIn.class, event -> ClientEmojiSync.INSTANCE.onConnect(currentServerHost()));
         NeoForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingOut.class, event -> ClientEmojiSync.INSTANCE.onDisconnect());
 
         NeoForge.EVENT_BUS.addListener(RegisterClientCommandsEvent.class, event ->
@@ -57,8 +71,32 @@ public final class TwemojiNeoForgeClient {
                             .executes(ctx -> {
                                 int tone = IntegerArgumentType.getInteger(ctx, "tone");
                                 EmojiConfig.get().setSkinTone(tone);
-                                String msg = tone == 0 ? "Emoji skin tone reset to default." : "Emoji skin tone set to " + tone + ".";
-                                ctx.getSource().sendSystemMessage(Component.literal(msg));
+                                Component msg = tone == 0
+                                    ? Component.translatable("twemoji.command.skin.reset")
+                                    : Component.translatable("twemoji.command.skin.set", tone);
+                                ctx.getSource().sendSystemMessage(msg);
+                                return 1;
+                            })
+                        )
+                    )
+                    .then(Commands.literal("rain")
+                        .then(Commands.argument("emoji", StringArgumentType.greedyString())
+                            .suggests((ctx, builder) -> EmojiCommandSuggestions.suggest(builder))
+                            .executes(ctx -> runRain(ctx.getSource(), StringArgumentType.getString(ctx, "emoji"), 8))
+                        )
+                        .then(Commands.argument("seconds", IntegerArgumentType.integer(1, EmojiRain.MAX_DURATION_SECONDS))
+                            .then(Commands.argument("emoji", StringArgumentType.greedyString())
+                                .suggests((ctx, builder) -> EmojiCommandSuggestions.suggest(builder))
+                                .executes(ctx -> runRain(ctx.getSource(), StringArgumentType.getString(ctx, "emoji"), IntegerArgumentType.getInteger(ctx, "seconds")))
+                            )
+                        )
+                    )
+                    .then(Commands.literal("button")
+                        .then(Commands.argument("visible", BoolArgumentType.bool())
+                            .executes(ctx -> {
+                                boolean visible = BoolArgumentType.getBool(ctx, "visible");
+                                EmojiConfig.get().setPickerButtonVisible(visible);
+                                ctx.getSource().sendSystemMessage(Component.translatable(visible ? "twemoji.command.button.shown" : "twemoji.command.button.hidden"));
                                 return 1;
                             })
                         )
@@ -79,6 +117,24 @@ public final class TwemojiNeoForgeClient {
         );
     }
 
+    private static int runRain(CommandSourceStack source, String input, int seconds) {
+        EmojiRegistry.EmojiEntry entry = EmojiRegistry.INSTANCE.get(input.trim());
+        if (entry == null) {
+            source.sendSystemMessage(Component.translatable("twemoji.command.rain.unknown_emoji", input));
+            return 0;
+        }
+        EmojiRain.start(EmojiRegistry.INSTANCE.spriteForTone(entry, EmojiConfig.get().getSkinTone()), seconds);
+        source.sendSystemMessage(Component.translatable("twemoji.command.rain.started", entry.shortcode(), seconds));
+        return 1;
+    }
+
+    private static String currentServerHost() {
+        Minecraft client = Minecraft.getInstance();
+        if (client.getCurrentServer() != null) return client.getCurrentServer().ip;
+        if (client.hasSingleplayerServer()) return "_singleplayer";
+        return "_unknown";
+    }
+
     private static int runRender(CommandSourceStack source, String name, int size) {
         try {
             Path path = EmojiExporter.exportEmoji(name, size);
@@ -87,11 +143,11 @@ public final class TwemojiNeoForgeClient {
                 .withColor(ChatFormatting.AQUA)
                 .withUnderlined(true)
                 .withClickEvent(new ClickEvent.OpenFile(absolute))
-                .withHoverEvent(new HoverEvent.ShowText(Component.literal("Click to open"))));
-            source.sendSystemMessage(Component.literal("Rendered emoji to ").append(link));
+                .withHoverEvent(new HoverEvent.ShowText(Component.translatable("twemoji.command.render.link.hover"))));
+            source.sendSystemMessage(Component.translatable("twemoji.command.render.success", link));
             return 1;
         } catch (Exception e) {
-            source.sendSystemMessage(Component.literal("Failed to render emoji: " + e.getMessage()));
+            source.sendSystemMessage(Component.translatable("twemoji.command.render.failed", e.getMessage()));
             return 0;
         }
     }

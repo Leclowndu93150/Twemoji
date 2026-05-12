@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.leclowndu93150.twemoji.client.AnimatedEmojiRegistry;
 import com.leclowndu93150.twemoji.client.EmojiRegistry;
+import com.leclowndu93150.twemoji.client.ServerEmojiCache;
 import com.leclowndu93150.twemoji.Twemoji;
 
 import java.io.ByteArrayOutputStream;
@@ -24,8 +25,19 @@ public final class ClientEmojiSync {
     private int expectedTotal;
     private Map<String, String> pendingCategoryIcons = Map.of();
     private final Map<Integer, EmojiBuilder> builders = new HashMap<>();
+    private String currentServerKey;
+    private boolean serverProvidedSync;
 
     private ClientEmojiSync() {}
+
+    public synchronized void onConnect(String serverHost) {
+        this.currentServerKey = serverHost;
+        this.serverProvidedSync = false;
+        ServerEmojiCache.Snapshot snapshot = ServerEmojiCache.load(serverHost);
+        if (snapshot != null) {
+            applyAtomically(snapshot.emojis(), snapshot.categoryIcons());
+        }
+    }
 
     public synchronized void onStart(EmojiSyncStartPayload payload) {
         activeSessionId = payload.sessionId();
@@ -73,13 +85,19 @@ public final class ClientEmojiSync {
         sessionActive = false;
         builders.clear();
         pendingCategoryIcons = Map.of();
+        serverProvidedSync = true;
         applyAtomically(assembled, icons);
+        if (currentServerKey != null) {
+            ServerEmojiCache.save(currentServerKey, assembled, icons);
+        }
     }
 
     public synchronized void onDisconnect() {
         sessionActive = false;
         builders.clear();
         pendingCategoryIcons = Map.of();
+        currentServerKey = null;
+        serverProvidedSync = false;
         applyAtomically(List.of(), Map.of());
     }
 

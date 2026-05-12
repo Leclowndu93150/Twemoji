@@ -592,4 +592,34 @@ public final class ServerEmojiLoader extends SimplePreparableReloadListener<Serv
         combined.addAll(animatedEmojis);
         return combined;
     }
+
+    public synchronized SyncedEmoji addOrReplaceStatic(String name, byte[] pngBytes, String category, List<String> aliases) {
+        List<SyncedEmoji> updated = new ArrayList<>(staticEmojis);
+        int existingIndex = -1;
+        int existingCodepoint = -1;
+        for (int i = 0; i < updated.size(); i++) {
+            if (updated.get(i).name().equals(name)) {
+                existingIndex = i;
+                existingCodepoint = updated.get(i).codepoint();
+                break;
+            }
+        }
+        int codepoint = existingCodepoint != -1 ? existingCodepoint : nextAvailableStaticCodepoint(updated);
+        SyncedEmoji entry = new SyncedEmoji(name, codepoint, false, "", pngBytes, category, aliases);
+        if (existingIndex >= 0) {
+            updated.set(existingIndex, entry);
+        } else {
+            updated.add(entry);
+        }
+        this.staticEmojis = Collections.unmodifiableList(updated);
+        return entry;
+    }
+
+    private static int nextAvailableStaticCodepoint(List<SyncedEmoji> emojis) {
+        int next = STATIC_CODEPOINT_START;
+        Set<Integer> used = new HashSet<>();
+        for (SyncedEmoji e : emojis) used.add(e.codepoint());
+        while (used.contains(next)) next++;
+        return next;
+    }
 }
