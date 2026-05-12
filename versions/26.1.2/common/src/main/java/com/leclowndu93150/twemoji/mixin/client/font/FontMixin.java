@@ -1,6 +1,6 @@
 package com.leclowndu93150.twemoji.mixin.client.font;
 
-import com.leclowndu93150.twemoji.client.glyph.UntintedBakedGlyph;
+import com.leclowndu93150.twemoji.client.render.glyph.UntintedBakedGlyph;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.util.FormattedCharSequence;

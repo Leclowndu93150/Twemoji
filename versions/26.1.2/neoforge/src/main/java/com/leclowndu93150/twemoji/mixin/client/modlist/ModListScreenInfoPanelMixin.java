@@ -1,6 +1,6 @@
 package com.leclowndu93150.twemoji.mixin.client.modlist;
 
-import com.leclowndu93150.twemoji.client.AnimatedLogo;
+import com.leclowndu93150.twemoji.client.render.AnimatedLogo;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.resources.Identifier;
 import org.spongepowered.asm.mixin.Mixin;

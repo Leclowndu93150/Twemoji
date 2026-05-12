@@ -1,8 +1,8 @@
 package com.leclowndu93150.twemoji.mixin.client.input;
 
-import com.leclowndu93150.twemoji.client.EmojiSuggestionHost;
-import com.leclowndu93150.twemoji.client.EmojiSuggestions;
-import com.leclowndu93150.twemoji.client.EmojiTooltip;
+import com.leclowndu93150.twemoji.client.suggestion.EmojiSuggestionHost;
+import com.leclowndu93150.twemoji.client.suggestion.EmojiSuggestions;
+import com.leclowndu93150.twemoji.client.tooltip.EmojiTooltip;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -17,6 +17,7 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import com.leclowndu93150.twemoji.mixin.client.input.accessor.MultilineTextFieldStringViewAccessor;
 
 @Mixin(MultiLineEditBox.class)
 public abstract class MultiLineEditBoxMixin implements EmojiSuggestionHost {

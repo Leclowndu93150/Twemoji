@@ -1,8 +1,8 @@
 package com.leclowndu93150.twemoji;
 
-import com.leclowndu93150.twemoji.network.EmojiSyncChunkPayload;
-import com.leclowndu93150.twemoji.network.EmojiSyncEndPayload;
-import com.leclowndu93150.twemoji.network.EmojiSyncStartPayload;
+import com.leclowndu93150.twemoji.network.payload.EmojiSyncChunkPayload;
+import com.leclowndu93150.twemoji.network.payload.EmojiSyncEndPayload;
+import com.leclowndu93150.twemoji.network.payload.EmojiSyncStartPayload;
 import com.leclowndu93150.twemoji.server.EmojiUploadCommand;
 import com.leclowndu93150.twemoji.server.ServerEmojiLoader;
 import com.leclowndu93150.twemoji.server.ServerEmojiSender;

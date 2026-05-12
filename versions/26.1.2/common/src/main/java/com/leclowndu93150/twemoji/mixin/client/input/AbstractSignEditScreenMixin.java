@@ -1,11 +1,11 @@
 package com.leclowndu93150.twemoji.mixin.client.input;
 
-import com.leclowndu93150.twemoji.client.EmojiConfig;
-import com.leclowndu93150.twemoji.client.EmojiRegistry;
-import com.leclowndu93150.twemoji.client.EmojiSuggestionHost;
-import com.leclowndu93150.twemoji.client.EmojiSuggestions;
-import com.leclowndu93150.twemoji.client.EmojiTooltip;
-import com.leclowndu93150.twemoji.client.EmojiTooltipHost;
+import com.leclowndu93150.twemoji.client.config.EmojiConfig;
+import com.leclowndu93150.twemoji.client.registry.EmojiRegistry;
+import com.leclowndu93150.twemoji.client.suggestion.EmojiSuggestionHost;
+import com.leclowndu93150.twemoji.client.suggestion.EmojiSuggestions;
+import com.leclowndu93150.twemoji.client.tooltip.EmojiTooltip;
+import com.leclowndu93150.twemoji.client.tooltip.EmojiTooltipHost;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;

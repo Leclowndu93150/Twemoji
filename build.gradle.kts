@@ -17,6 +17,20 @@ prism {
 
     curseMaven()
 
+    version("1.21.11") {
+        fabric {
+            loaderVersion = "0.19.2"
+            fabricApi("0.141.4+1.21.11")
+
+            dependencies {
+                modCompileOnly("curse.maven:modmenu-308702:7808841")
+            }
+        }
+        neoforge {
+            loaderVersion = "21.11.42"
+        }
+    }
+
     version("26.1.2") {
         fabric {
             loaderVersion = "0.19.2"

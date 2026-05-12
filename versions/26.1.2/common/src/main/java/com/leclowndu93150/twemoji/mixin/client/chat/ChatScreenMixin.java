@@ -1,10 +1,10 @@
 package com.leclowndu93150.twemoji.mixin.client.chat;
 
-import com.leclowndu93150.twemoji.client.EmojiConfig;
-import com.leclowndu93150.twemoji.client.EmojiPicker;
-import com.leclowndu93150.twemoji.client.EmojiRegistry;
-import com.leclowndu93150.twemoji.client.EmojiTooltip;
-import com.leclowndu93150.twemoji.client.TwemojiKeyMappings;
+import com.leclowndu93150.twemoji.client.config.EmojiConfig;
+import com.leclowndu93150.twemoji.client.picker.EmojiPicker;
+import com.leclowndu93150.twemoji.client.registry.EmojiRegistry;
+import com.leclowndu93150.twemoji.client.tooltip.EmojiTooltip;
+import com.leclowndu93150.twemoji.client.picker.TwemojiKeyMappings;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
@@ -89,6 +89,7 @@ public class ChatScreenMixin {
             this.twemoji$picker.render(graphics, mouseX, mouseY, self.width, self.height);
         }
         ChatScreen self2 = (ChatScreen)(Object)this;
+        if (this.twemoji$picker != null && this.twemoji$picker.blocksMouse(mouseX, mouseY, self2.width, self2.height)) return;
         EmojiTooltip.Hit hit = this.twemoji$chatMessageHit(mouseX, mouseY);
         EmojiTooltip.renderHoverHighlight(graphics, hit);
         EmojiTooltip.requestHoverCursor(graphics, hit);

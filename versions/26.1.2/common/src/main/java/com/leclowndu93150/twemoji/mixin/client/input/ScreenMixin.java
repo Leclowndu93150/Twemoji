@@ -1,6 +1,6 @@
 package com.leclowndu93150.twemoji.mixin.client.input;
 
-import com.leclowndu93150.twemoji.client.EmojiSuggestionHost;
+import com.leclowndu93150.twemoji.client.suggestion.EmojiSuggestionHost;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.ChatScreen;

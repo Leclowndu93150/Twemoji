@@ -1,15 +1,15 @@
 package com.leclowndu93150.twemoji;
 
-import com.leclowndu93150.twemoji.client.EmojiCommandSuggestions;
-import com.leclowndu93150.twemoji.client.EmojiConfig;
-import com.leclowndu93150.twemoji.client.EmojiExporter;
-import com.leclowndu93150.twemoji.client.EmojiRain;
-import com.leclowndu93150.twemoji.client.EmojiRegistry;
-import com.leclowndu93150.twemoji.client.TwemojiKeyMappings;
-import com.leclowndu93150.twemoji.network.ClientEmojiSync;
-import com.leclowndu93150.twemoji.network.EmojiSyncChunkPayload;
-import com.leclowndu93150.twemoji.network.EmojiSyncEndPayload;
-import com.leclowndu93150.twemoji.network.EmojiSyncStartPayload;
+import com.leclowndu93150.twemoji.client.suggestion.EmojiCommandSuggestions;
+import com.leclowndu93150.twemoji.client.config.EmojiConfig;
+import com.leclowndu93150.twemoji.client.command.EmojiExporter;
+import com.leclowndu93150.twemoji.client.render.EmojiRain;
+import com.leclowndu93150.twemoji.client.registry.EmojiRegistry;
+import com.leclowndu93150.twemoji.client.picker.TwemojiKeyMappings;
+import com.leclowndu93150.twemoji.network.handler.ClientEmojiSync;
+import com.leclowndu93150.twemoji.network.payload.EmojiSyncChunkPayload;
+import com.leclowndu93150.twemoji.network.payload.EmojiSyncEndPayload;
+import com.leclowndu93150.twemoji.network.payload.EmojiSyncStartPayload;
 import com.mojang.brigadier.arguments.BoolArgumentType;
 import com.mojang.brigadier.arguments.IntegerArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;

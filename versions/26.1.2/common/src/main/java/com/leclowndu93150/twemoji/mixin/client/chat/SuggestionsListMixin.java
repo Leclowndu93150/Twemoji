@@ -1,9 +1,9 @@
 package com.leclowndu93150.twemoji.mixin.client.chat;
 
-import com.leclowndu93150.twemoji.client.EmojiConfig;
-import com.leclowndu93150.twemoji.client.EmojiRegistry;
-import com.leclowndu93150.twemoji.client.EmojiSuggestion;
-import com.leclowndu93150.twemoji.client.glyph.EmojiSprite;
+import com.leclowndu93150.twemoji.client.config.EmojiConfig;
+import com.leclowndu93150.twemoji.client.registry.EmojiRegistry;
+import com.leclowndu93150.twemoji.client.suggestion.EmojiSuggestion;
+import com.leclowndu93150.twemoji.client.render.EmojiSprite;
 import com.mojang.brigadier.suggestion.Suggestion;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -17,6 +17,8 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.List;
+import com.leclowndu93150.twemoji.mixin.client.chat.accessor.SuggestionsListAccessor;
+import com.leclowndu93150.twemoji.mixin.client.chat.accessor.CommandSuggestionsAccessor;
 
 @Mixin(CommandSuggestions.SuggestionsList.class)
 public class SuggestionsListMixin {
