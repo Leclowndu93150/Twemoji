@@ -45,6 +45,13 @@ public final class EmojiPicker {
     private static final int KEY_BACKSPACE = 259;
     private static final int KEY_ENTER = 257;
     private static final int KEY_NUMPAD_ENTER = 335;
+    private static final int KEY_LEFT = 263;
+    private static final int KEY_RIGHT = 262;
+    private static final int KEY_UP = 265;
+    private static final int KEY_DOWN = 264;
+    private static final int KEY_TAB = 258;
+    private static final int KEY_PAGE_UP = 266;
+    private static final int KEY_PAGE_DOWN = 267;
 
     private static EmojiPicker activeSearchPicker;
 
@@ -60,6 +67,7 @@ public final class EmojiPicker {
     private PickerCategory selected = new BuiltinCategory(Category.PEOPLE);
     private int scroll;
     private int categoryScroll;
+    private int cursorIndex = -1;
     private String search = "";
     private EmojiRegistry.EmojiEntry hoveredEntry;
     private EditBox searchOwner;
@@ -77,6 +85,7 @@ public final class EmojiPicker {
         this.toneOpen = false;
         this.searchFocused = this.open;
         this.scroll = 0;
+        this.cursorIndex = -1;
     }
 
     public void close() {
@@ -84,7 +93,14 @@ public final class EmojiPicker {
         this.searchFocused = false;
         this.toneOpen = false;
         this.searchOwner = null;
+        this.cursorIndex = -1;
         if (activeSearchPicker == this) activeSearchPicker = null;
+    }
+
+    public void attachInput(EditBox input) {
+        this.searchOwner = input;
+        activeSearchPicker = this;
+        this.searchFocused = true;
     }
 
     public static boolean handleActiveSearchChar(EditBox input, CharacterEvent event) {
@@ -186,6 +202,7 @@ public final class EmojiPicker {
             this.categoryOpen = true;
             this.search = "";
             this.scroll = 0;
+            this.cursorIndex = -1;
             this.searchFocused = false;
             this.searchOwner = null;
             this.toneOpen = false;
@@ -238,32 +255,76 @@ public final class EmojiPicker {
             this.close();
             return true;
         }
+        int key = event.key();
+        List<EmojiRegistry.EmojiEntry> entries = this.entries();
+
+        if (key == KEY_LEFT || key == KEY_RIGHT || key == KEY_UP || key == KEY_DOWN
+            || key == KEY_PAGE_UP || key == KEY_PAGE_DOWN) {
+            if (entries.isEmpty()) return true;
+            int cols = columns();
+            if (this.cursorIndex < 0) this.cursorIndex = this.scroll * cols;
+            int next = switch (key) {
+                case KEY_LEFT -> this.cursorIndex - 1;
+                case KEY_RIGHT -> this.cursorIndex + 1;
+                case KEY_UP -> this.cursorIndex - cols;
+                case KEY_DOWN -> this.cursorIndex + cols;
+                case KEY_PAGE_UP -> this.cursorIndex - cols * visibleRows();
+                case KEY_PAGE_DOWN -> this.cursorIndex + cols * visibleRows();
+                default -> this.cursorIndex;
+            };
+            this.cursorIndex = Mth.clamp(next, 0, entries.size() - 1);
+            this.ensureCursorVisible(entries.size());
+            return true;
+        }
+
+        if (key == KEY_TAB) {
+            this.selectAdjacentCategory(event.hasShiftDown() ? -1 : 1);
+            this.cursorIndex = -1;
+            return true;
+        }
+
+        if (key == KEY_ENTER || key == KEY_NUMPAD_ENTER) {
+            if (entries.isEmpty()) return true;
+            int idx = this.cursorIndex >= 0 ? this.cursorIndex : 0;
+            EmojiRegistry.EmojiEntry entry = entries.get(Math.min(idx, entries.size() - 1));
+            input.insertText(EmojiRegistry.INSTANCE.characterForTone(entry, EmojiConfig.get().getSkinTone()));
+            EmojiConfig.get().recordEmojiUse(EmojiRegistry.innerName(entry));
+            input.setFocused(true);
+            this.searchFocused = false;
+            return true;
+        }
+
         if (!this.searchFocused) return false;
-        if (event.key() == KEY_BACKSPACE) {
+        if (key == KEY_BACKSPACE) {
             if (!this.search.isEmpty()) {
                 this.search = this.search.substring(0, this.search.length() - 1);
                 this.scroll = 0;
+                this.cursorIndex = -1;
             }
             return true;
         }
-        if (event.key() == KEY_ENTER || event.key() == KEY_NUMPAD_ENTER) {
-            List<EmojiRegistry.EmojiEntry> entries = this.entries();
-            if (!entries.isEmpty()) {
-                EmojiRegistry.EmojiEntry entry = entries.getFirst();
-                input.insertText(EmojiRegistry.INSTANCE.characterForTone(entry, EmojiConfig.get().getSkinTone()));
-                EmojiConfig.get().recordEmojiUse(EmojiRegistry.innerName(entry));
-                input.setFocused(true);
-                this.searchFocused = false;
-                return true;
-            }
-        }
         return false;
+    }
+
+    private void ensureCursorVisible(int total) {
+        if (this.cursorIndex < 0) return;
+        int cols = columns();
+        int row = this.cursorIndex / cols;
+        if (row < this.scroll) {
+            this.scroll = row;
+        } else if (row >= this.scroll + visibleRows()) {
+            this.scroll = row - visibleRows() + 1;
+        }
+        int rows = (total + cols - 1) / cols;
+        int maxScroll = Math.max(0, rows - visibleRows());
+        this.scroll = Mth.clamp(this.scroll, 0, maxScroll);
     }
 
     public boolean charTyped(CharacterEvent event) {
         if (!this.open || !this.searchFocused || !event.isAllowedChatCharacter()) return false;
         this.search += event.codepointAsString();
         this.scroll = 0;
+        this.cursorIndex = -1;
         return true;
     }
 
@@ -333,9 +394,13 @@ public final class EmojiPicker {
             int cx = gridX + cell % columns() * CELL;
             int cy = gridY + cell / columns() * CELL;
             boolean hovered = contains(mouseX, mouseY, cx, cy, CELL, CELL) && !this.isToneInteraction(mouseX, mouseY, x, y);
+            boolean focused = i == this.cursorIndex;
             if (hovered) {
                 graphics.fill(cx, cy, cx + CELL, cy + CELL, HOVER_COLOR);
                 graphics.requestCursor(CursorTypes.POINTING_HAND);
+                this.hoveredEntry = entries.get(i);
+            } else if (focused) {
+                graphics.fill(cx, cy, cx + CELL, cy + CELL, SELECTED_COLOR);
                 this.hoveredEntry = entries.get(i);
             }
             this.renderSprite(graphics, EmojiRegistry.INSTANCE.spriteForTone(entries.get(i), EmojiConfig.get().getSkinTone()), cx + (CELL - EMOJI_SIZE) / 2, cy + (CELL - EMOJI_SIZE) / 2, EMOJI_SIZE);
@@ -613,14 +678,7 @@ public final class EmojiPicker {
 
     private void renderSprite(GuiGraphicsExtractor graphics, EmojiSprite sprite, int x, int y, int size) {
         if (sprite == null) return;
-        switch (sprite) {
-            case EmojiSprite.Sheet sheet -> graphics.blit(sheet.texture(), x, y, x + size, y + size, sheet.u0(), sheet.u1(), sheet.v0(), sheet.v1());
-            case EmojiSprite.Custom custom -> graphics.blit(custom.texture(), x, y, x + size, y + size, 0.0F, 1.0F, 0.0F, 1.0F);
-            case EmojiSprite.Animated animated -> {
-                AnimatedEmojiRegistry.AnimatedEmoji emoji = AnimatedEmojiRegistry.INSTANCE.byCodepoint(animated.codepoint());
-                if (emoji != null) graphics.blit(emoji.currentFrame(), x, y, x + size, y + size, 0.0F, 1.0F, 0.0F, 1.0F);
-            }
-        }
+        sprite.blit(graphics, x, y, size);
     }
 
     private String trimToWidth(String text, int width) {

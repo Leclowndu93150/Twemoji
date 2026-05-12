@@ -1,8 +1,6 @@
 package com.leclowndu93150.twemoji.mixin.client.input;
 
 import com.leclowndu93150.twemoji.client.EmojiSuggestionHost;
-import com.leclowndu93150.twemoji.client.EmojiTooltip;
-import com.leclowndu93150.twemoji.client.EmojiTooltipHost;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.ChatScreen;
@@ -29,13 +27,9 @@ public abstract class ScreenMixin {
     @Inject(method = "extractRenderState", at = @At("TAIL"))
     private void twemoji$extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a, CallbackInfo ci) {
         if ((Object)this instanceof ChatScreen) return;
-        Screen self = (Screen)(Object)this;
         EmojiSuggestionHost host = this.twemoji$host();
         if (host != null) {
             host.twemoji$suggestions().render(graphics, mouseX, mouseY);
-        }
-        if (!(self instanceof EmojiTooltipHost)) {
-            EmojiTooltip.render(self, graphics, self.getFont(), self.width, self.height);
         }
     }
 

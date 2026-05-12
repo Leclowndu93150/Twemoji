@@ -1,10 +1,9 @@
 package com.leclowndu93150.twemoji.mixin.client.chat;
 
-import com.leclowndu93150.twemoji.client.AnimatedEmojiRegistry;
 import com.leclowndu93150.twemoji.client.EmojiConfig;
 import com.leclowndu93150.twemoji.client.EmojiRegistry;
-import com.leclowndu93150.twemoji.client.glyph.EmojiSprite;
 import com.leclowndu93150.twemoji.client.EmojiSuggestion;
+import com.leclowndu93150.twemoji.client.glyph.EmojiSprite;
 import com.mojang.brigadier.suggestion.Suggestion;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
@@ -69,14 +68,7 @@ public class SuggestionsListMixin {
 
         if (idx >= 0 && idx < suggestionList.size() && suggestionList.get(idx) instanceof EmojiSuggestion emoji) {
             EmojiSprite sprite = emoji.getSprite();
-            switch (sprite) {
-                case EmojiSprite.Sheet s -> graphics.blit(s.texture(), x, y - 1, x + EMOJI_SIZE, y - 1 + EMOJI_SIZE, s.u0(), s.u1(), s.v0(), s.v1());
-                case EmojiSprite.Custom c -> graphics.blit(c.texture(), x, y - 1, x + EMOJI_SIZE, y - 1 + EMOJI_SIZE, 0f, 1f, 0f, 1f);
-                case EmojiSprite.Animated a -> {
-                    AnimatedEmojiRegistry.AnimatedEmoji ae = AnimatedEmojiRegistry.INSTANCE.byCodepoint(a.codepoint());
-                    if (ae != null) graphics.blit(ae.currentFrame(), x, y - 1, x + EMOJI_SIZE, y - 1 + EMOJI_SIZE, 0f, 1f, 0f, 1f);
-                }
-            }
+            if (sprite != null) sprite.blit(graphics, x, y - 1, EMOJI_SIZE);
             String trimmed = font.plainSubstrByWidth(text, MAX_LABEL_WIDTH);
             if (trimmed.length() < text.length()) trimmed = font.plainSubstrByWidth(text, MAX_LABEL_WIDTH - font.width("...")) + "...";
             graphics.text(font, trimmed, x + EMOJI_COL, y, color);

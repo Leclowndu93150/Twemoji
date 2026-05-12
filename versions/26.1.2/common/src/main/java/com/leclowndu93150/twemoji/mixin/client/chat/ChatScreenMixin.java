@@ -41,6 +41,14 @@ public class ChatScreenMixin {
 
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void twemoji$keyPressed(KeyEvent event, CallbackInfoReturnable<Boolean> cir) {
+        if (this.twemoji$picker != null && event.input() == 69 && event.hasControlDownWithQuirk() && !event.hasShiftDown() && !event.hasAltDown()) {
+            this.twemoji$picker.toggle();
+            if (this.twemoji$picker.isOpen()) {
+                this.twemoji$picker.attachInput(this.input);
+            }
+            cir.setReturnValue(true);
+            return;
+        }
         if (this.twemoji$picker != null && this.twemoji$picker.keyPressed(event, this.input)) {
             cir.setReturnValue(true);
         }
@@ -56,11 +64,9 @@ public class ChatScreenMixin {
             }
         }
         if (event.button() == 0) {
-            ChatScreen self = (ChatScreen)(Object)this;
-            EmojiTooltip.closeIfOpen(self);
             EmojiTooltip.Hit hit = this.twemoji$chatMessageHit((int)event.x(), (int)event.y());
             if (hit != null) {
-                cir.setReturnValue(EmojiTooltip.click(self, hit));
+                cir.setReturnValue(EmojiTooltip.copyShortcode(hit));
             }
         }
     }
@@ -81,11 +87,11 @@ public class ChatScreenMixin {
             ChatScreen self = (ChatScreen)(Object)this;
             this.twemoji$picker.render(graphics, mouseX, mouseY, self.width, self.height);
         }
-        ChatScreen self = (ChatScreen)(Object)this;
+        ChatScreen self2 = (ChatScreen)(Object)this;
         EmojiTooltip.Hit hit = this.twemoji$chatMessageHit(mouseX, mouseY);
         EmojiTooltip.renderHoverHighlight(graphics, hit);
         EmojiTooltip.requestHoverCursor(graphics, hit);
-        EmojiTooltip.render(self, graphics, self.getFont(), self.width, self.height);
+        EmojiTooltip.render(graphics, self2.getFont(), self2.width, self2.height, hit);
     }
 
     @Inject(method = "handleChatInput", at = @At("HEAD"), cancellable = true)

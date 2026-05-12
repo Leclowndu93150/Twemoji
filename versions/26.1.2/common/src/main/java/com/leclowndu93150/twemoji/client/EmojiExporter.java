@@ -42,6 +42,10 @@ public final class EmojiExporter {
         if (entry == null) {
             throw new IOException("Unknown emoji: " + input);
         }
+        int skinTone = EmojiConfig.get().getSkinTone();
+        EmojiRegistry.EmojiEntry toned = EmojiRegistry.INSTANCE.entryForTone(entry, skinTone);
+        if (toned != null) entry = toned;
+
         Path outputDir = Minecraft.getInstance().gameDirectory.toPath().resolve(OUTPUT_DIR);
         Files.createDirectories(outputDir);
 
@@ -59,7 +63,7 @@ public final class EmojiExporter {
             return output;
         }
 
-        NativeImage source = readSpriteImage(entry.sprite());
+        NativeImage source = readSpriteImage(entry.spriteForTone(skinTone));
         try {
             NativeImage scaled = scaleNearest(source, size);
             try {

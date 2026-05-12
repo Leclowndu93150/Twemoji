@@ -15,12 +15,11 @@ public interface ContainerEventHandlerMixin {
 
     @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
     private void twemoji$emojiTooltipClicked(MouseButtonEvent event, boolean doubleClick, CallbackInfoReturnable<Boolean> cir) {
-        if (event.button() != 0 || !((Object)this instanceof Screen screen)) return;
-        EmojiTooltip.closeIfOpen(screen);
+        if (event.button() != 0 || !((Object)this instanceof Screen)) return;
         if ((Object)this instanceof EmojiTooltipHost host) {
             EmojiTooltip.Hit hit = host.twemoji$emojiTooltipHit((int)event.x(), (int)event.y());
             if (hit != null) {
-                cir.setReturnValue(EmojiTooltip.click(screen, hit));
+                cir.setReturnValue(EmojiTooltip.copyShortcode(hit));
             }
         }
     }

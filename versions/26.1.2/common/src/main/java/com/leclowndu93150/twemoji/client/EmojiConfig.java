@@ -20,6 +20,8 @@ public class EmojiConfig {
     private static final int FREQUENT_LIMIT = 32;
 
     private int skinTone = 0;
+    private boolean emoticonsEnabled = true;
+    private boolean hoverTooltipsEnabled = true;
     private final List<String> frequentEmojis = new ArrayList<>();
 
     private static Path configDir;
@@ -41,6 +43,24 @@ public class EmojiConfig {
 
     public void setSkinTone(int tone) {
         this.skinTone = clampTone(tone);
+        save();
+    }
+
+    public boolean isEmoticonsEnabled() {
+        return emoticonsEnabled;
+    }
+
+    public void setEmoticonsEnabled(boolean value) {
+        this.emoticonsEnabled = value;
+        save();
+    }
+
+    public boolean isHoverTooltipsEnabled() {
+        return hoverTooltipsEnabled;
+    }
+
+    public void setHoverTooltipsEnabled(boolean value) {
+        this.hoverTooltipsEnabled = value;
         save();
     }
 
@@ -66,6 +86,12 @@ public class EmojiConfig {
                 EmojiConfig cfg = new EmojiConfig();
                 if (obj != null && obj.has("skinTone")) {
                     cfg.skinTone = clampTone(obj.get("skinTone").getAsInt());
+                }
+                if (obj != null && obj.has("emoticonsEnabled")) {
+                    cfg.emoticonsEnabled = obj.get("emoticonsEnabled").getAsBoolean();
+                }
+                if (obj != null && obj.has("hoverTooltipsEnabled")) {
+                    cfg.hoverTooltipsEnabled = obj.get("hoverTooltipsEnabled").getAsBoolean();
                 }
                 if (obj != null && obj.has("frequentEmojis")) {
                     JsonArray frequent = obj.getAsJsonArray("frequentEmojis");
@@ -93,6 +119,8 @@ public class EmojiConfig {
             try (Writer w = Files.newBufferedWriter(file)) {
                 JsonObject obj = new JsonObject();
                 obj.addProperty("skinTone", skinTone);
+                obj.addProperty("emoticonsEnabled", emoticonsEnabled);
+                obj.addProperty("hoverTooltipsEnabled", hoverTooltipsEnabled);
                 JsonArray frequent = new JsonArray();
                 for (String name : frequentEmojis) {
                     frequent.add(name);

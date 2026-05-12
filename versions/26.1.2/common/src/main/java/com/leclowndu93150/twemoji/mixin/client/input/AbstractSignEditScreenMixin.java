@@ -104,7 +104,7 @@ public abstract class AbstractSignEditScreenMixin implements EmojiSuggestionHost
         this.twemoji$suggestions().update(message, cursor, x, y, ((AbstractSignEditScreen)(Object)this).width);
         this.twemoji$suggestions().render(graphics, mouseX, mouseY);
         AbstractSignEditScreen self = (AbstractSignEditScreen)(Object)this;
-        EmojiTooltip.render(self, graphics, self.getFont(), self.width, self.height);
+        EmojiTooltip.render(graphics, self.getFont(), self.width, self.height, hit);
     }
 
     @Override

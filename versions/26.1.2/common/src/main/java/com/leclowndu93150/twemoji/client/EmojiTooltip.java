@@ -2,16 +2,17 @@ package com.leclowndu93150.twemoji.client;
 
 import com.leclowndu93150.twemoji.client.glyph.EmojiSprite;
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ActiveTextCollector;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.TextAlignment;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
-import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
+import net.minecraft.util.Util;
 import org.joml.Matrix3x2f;
 import org.joml.Vector2f;
 import org.jspecify.annotations.Nullable;
@@ -31,20 +32,23 @@ public final class EmojiTooltip {
     private static final int MIN_WIDTH = 112;
     private static final int MAX_TEXT_WIDTH = 150;
 
-    private static @Nullable Screen owner;
-    private static EmojiRegistry.@Nullable EmojiEntry entry;
-    private static int anchorX;
-    private static int anchorY;
+    private static long copiedAtMs;
+    private static EmojiRegistry.@Nullable EmojiEntry copiedEntry;
+    private static final int COPY_FLASH_MS = 1200;
 
     private EmojiTooltip() {
     }
 
-    public static void render(Screen screen, GuiGraphicsExtractor graphics, Font font, int screenWidth, int screenHeight) {
-        if (owner != screen || entry == null) return;
-
+    public static void render(GuiGraphicsExtractor graphics, Font font, int screenWidth, int screenHeight, @Nullable Hit hit) {
+        if (hit == null || !EmojiConfig.get().isHoverTooltipsEnabled()) return;
+        EmojiRegistry.EmojiEntry entry = hit.entry();
         String shortcode = entry.shortcode();
-        int textWidth = Math.min(font.width(shortcode), MAX_TEXT_WIDTH);
+        boolean showCopied = copiedEntry == entry && Util.getMillis() - copiedAtMs < COPY_FLASH_MS;
+        String label = showCopied ? "Copied " + shortcode : shortcode;
+        int textWidth = Math.min(font.width(label), MAX_TEXT_WIDTH);
         int width = Math.max(MIN_WIDTH, PADDING * 2 + EMOJI_SIZE + GAP + textWidth);
+        int anchorX = hit.centerX();
+        int anchorY = hit.bottom();
         int x = Mth.clamp(anchorX + 8, 4, Math.max(4, screenWidth - width - 4));
         int y = anchorY + 10;
         if (y + HEIGHT > screenHeight - 4) {
@@ -56,39 +60,35 @@ public final class EmojiTooltip {
         graphics.fill(x + 1, y + 1, x + width - 1, y + HEIGHT - 1, FOOTER_COLOR);
         drawBorder(graphics, x, y, width, HEIGHT, BORDER_COLOR);
         renderSprite(graphics, EmojiRegistry.INSTANCE.spriteForTone(entry, EmojiConfig.get().getSkinTone()), x + PADDING, y + (HEIGHT - EMOJI_SIZE) / 2, EMOJI_SIZE);
-        graphics.text(font, trimToWidth(font, shortcode, width - PADDING * 2 - EMOJI_SIZE - GAP), x + PADDING + EMOJI_SIZE + GAP, y + 11, TEXT_COLOR, false);
+        int labelColor = showCopied ? 0xFF8AE08A : TEXT_COLOR;
+        graphics.text(font, trimToWidth(font, label, width - PADDING * 2 - EMOJI_SIZE - GAP), x + PADDING + EMOJI_SIZE + GAP, y + 11, labelColor, false);
 
-        String name = EmojiRegistry.innerName(entry);
+        String name = showCopied ? "Click to copy" : EmojiRegistry.innerName(entry);
         graphics.text(font, trimToWidth(font, name, width - PADDING * 2 - EMOJI_SIZE - GAP), x + PADDING + EMOJI_SIZE + GAP, y + 22, MUTED_COLOR, false);
     }
 
-    public static boolean click(Screen screen, Hit hit) {
-        owner = screen;
-        entry = hit.entry();
-        anchorX = hit.centerX();
-        anchorY = hit.bottom();
-        return true;
-    }
-
-    public static boolean closeIfOpen(Screen screen) {
-        if (owner != screen || entry == null) return false;
-        entry = null;
-        owner = null;
+    public static boolean copyShortcode(Hit hit) {
+        if (hit == null) return false;
+        Minecraft.getInstance().keyboardHandler.setClipboard(hit.entry().shortcode());
+        copiedEntry = hit.entry();
+        copiedAtMs = Util.getMillis();
         return true;
     }
 
     public static @Nullable Hit hitString(Font font, String text, int x, int y, float scaleX, float scaleY, int mouseX, int mouseY) {
         if (text.isEmpty()) return null;
         int lineHeight = Math.max(1, Math.round(9.0F * scaleY));
-        if (mouseY < y || mouseY >= y + lineHeight) return null;
+        int top = y - 1;
+        if (mouseY < top || mouseY >= top + lineHeight) return null;
 
         int cursorX = x;
         for (int offset = 0; offset < text.length(); ) {
             int codepoint = text.codePointAt(offset);
             int charWidth = Math.max(1, Math.round(font.width(new String(Character.toChars(codepoint))) * scaleX));
             EmojiRegistry.EmojiEntry candidate = EmojiRegistry.INSTANCE.entryForCodepoint(codepoint);
-            if (candidate != null && mouseX >= cursorX && mouseX < cursorX + charWidth) {
-                return new Hit(candidate, cursorX, y, cursorX + charWidth, y + lineHeight);
+            int right = cursorX + charWidth - 1;
+            if (candidate != null && mouseX >= cursorX && mouseX < right) {
+                return new Hit(candidate, cursorX, top, right, top + lineHeight);
             }
             cursorX += charWidth;
             offset += Character.charCount(codepoint);
@@ -109,24 +109,12 @@ public final class EmojiTooltip {
 
     public static void renderHoverHighlight(GuiGraphicsExtractor graphics, @Nullable Hit hit) {
         if (hit == null) return;
-        int size = Math.max(hit.right() - hit.left(), hit.bottom() - hit.top()) + 4;
-        int centerX = (hit.left() + hit.right()) / 2;
-        int centerY = (hit.top() + hit.bottom()) / 2;
-        int left = centerX - size / 2;
-        int top = centerY - size / 2;
-        graphics.fill(left, top, left + size, top + size, HOVER_COLOR);
+        graphics.fill(hit.left(), hit.top(), hit.right(), hit.bottom(), HOVER_COLOR);
     }
 
     private static void renderSprite(GuiGraphicsExtractor graphics, EmojiSprite sprite, int x, int y, int size) {
         if (sprite == null) return;
-        switch (sprite) {
-            case EmojiSprite.Sheet sheet -> graphics.blit(sheet.texture(), x, y, x + size, y + size, sheet.u0(), sheet.u1(), sheet.v0(), sheet.v1());
-            case EmojiSprite.Custom custom -> graphics.blit(custom.texture(), x, y, x + size, y + size, 0.0F, 1.0F, 0.0F, 1.0F);
-            case EmojiSprite.Animated animated -> {
-                AnimatedEmojiRegistry.AnimatedEmoji emoji = AnimatedEmojiRegistry.INSTANCE.byCodepoint(animated.codepoint());
-                if (emoji != null) graphics.blit(emoji.currentFrame(), x, y, x + size, y + size, 0.0F, 1.0F, 0.0F, 1.0F);
-            }
-        }
+        sprite.blit(graphics, x, y, size);
     }
 
     private static void drawBorder(GuiGraphicsExtractor graphics, int x, int y, int width, int height, int color) {
@@ -183,7 +171,8 @@ public final class EmojiTooltip {
             if (parameters.scissor() != null && !parameters.scissor().containsPoint(this.mouseX, this.mouseY)) return;
             Matrix3x2f inverse = parameters.pose().invert(new Matrix3x2f());
             Vector2f localMouse = inverse.transformPosition(this.mouseX, this.mouseY, new Vector2f());
-            if (localMouse.y() < y || localMouse.y() >= y + 9) return;
+            int top = y - 1;
+            if (localMouse.y() < top || localMouse.y() >= top + 9) return;
             int leftX = alignment.calculateLeft(anchorX, this.font, text);
 
             int[] cursorX = {leftX};
@@ -193,8 +182,9 @@ public final class EmojiTooltip {
                 int width;
                 if (candidate != null) {
                     width = Math.max(1, this.font.width(FormattedCharSequence.forward(new String(Character.toChars(codepoint)), style)));
-                    if (localMouse.x() >= cursorX[0] && localMouse.x() < cursorX[0] + width) {
-                        ScreenRectangle bounds = new ScreenRectangle(cursorX[0], y, width, 9).transformMaxBounds(parameters.pose());
+                    int rightLimit = cursorX[0] + width - 1;
+                    if (localMouse.x() >= cursorX[0] && localMouse.x() < rightLimit) {
+                        ScreenRectangle bounds = new ScreenRectangle(cursorX[0], top, width - 1, 9).transformMaxBounds(parameters.pose());
                         this.result = new Hit(candidate, bounds.left(), bounds.top(), bounds.right(), bounds.bottom());
                         return false;
                     }

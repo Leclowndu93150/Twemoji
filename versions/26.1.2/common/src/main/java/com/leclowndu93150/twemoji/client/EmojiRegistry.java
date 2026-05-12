@@ -478,7 +478,8 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
     }
 
     public String applyShortcodes(String message, int skinTone) {
-        if (message.indexOf(':') < 0) return applyEmoticons(message, skinTone);
+        boolean emoticons = EmojiConfig.get().isEmoticonsEnabled();
+        if (message.indexOf(':') < 0) return emoticons ? applyEmoticons(message, skinTone) : message;
         StringBuilder out = new StringBuilder(message.length());
         int len = message.length();
         int i = 0;
@@ -504,7 +505,7 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
                 i = start + 1;
             }
         }
-        return applyEmoticons(out.toString(), skinTone);
+        return emoticons ? applyEmoticons(out.toString(), skinTone) : out.toString();
     }
 
     private String applyEmoticons(String message, int skinTone) {
