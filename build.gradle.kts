@@ -13,9 +13,38 @@ prism {
         license = "All Rights Reserved"
     }
 
-    obfuscate()
+//    skidfuscate()
+//    obfuscate()
 
     curseMaven()
+
+    version("1.20.1") {
+        fabric {
+            loaderVersion = "0.19.2"
+            fabricApi("0.92.9+1.20.1")
+
+            dependencies {
+                modCompileOnly("curse.maven:modmenu-308702:5162837")
+            }
+        }
+        forge {
+            loaderVersion = "47.4.10"
+        }
+    }
+
+    version("1.21.1") {
+        fabric {
+            loaderVersion = "0.19.2"
+            fabricApi("0.116.12+1.21.1")
+
+            dependencies {
+                modCompileOnly("curse.maven:modmenu-308702:7808443")
+            }
+        }
+        neoforge {
+            loaderVersion = "21.1.228"
+        }
+    }
 
     version("1.21.11") {
         fabric {

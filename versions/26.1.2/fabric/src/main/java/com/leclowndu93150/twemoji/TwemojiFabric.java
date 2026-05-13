@@ -95,6 +95,17 @@ public class TwemojiFabric implements ClientModInitializer {
                             )
                         )
                     )
+                    .then(ClientCommands.literal("flags")
+                        .then(ClientCommands.argument("enabled", BoolArgumentType.bool())
+                            .executes(ctx -> {
+                                boolean enabled = BoolArgumentType.getBool(ctx, "enabled");
+                                EmojiConfig.get().setFlagsEnabled(enabled);
+                                EmojiRegistry.INSTANCE.refreshShapingTable();
+                                ctx.getSource().sendFeedback(Component.translatable(enabled ? "twemoji.command.flags.enabled" : "twemoji.command.flags.disabled"));
+                                return 1;
+                            })
+                        )
+                    )
                     .then(ClientCommands.literal("button")
                         .then(ClientCommands.argument("visible", BoolArgumentType.bool())
                             .executes(ctx -> {

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${version}",
+  "name": "${mod_name}",
+  "description": "${description}",
+  "license": "${license}",
+  "icon": "icon.png",
+  "entrypoints": {
+    "main": [
+      "com.leclowndu93150.twemoji.TwemojiFabricCommon"
+    ],
+    "client": [
+      "com.leclowndu93150.twemoji.TwemojiFabric"
+    ]
+  },
+  "mixins": [
+    "${mod_id}.mixins.json",
+    "${mod_id}.fabric.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=${fabric_loader_version}",
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version}",
+    "java": ">=${java_version}"
+  }
+}

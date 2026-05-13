@@ -101,6 +101,17 @@ public final class TwemojiNeoForgeClient {
                             })
                         )
                     )
+                    .then(Commands.literal("flags")
+                        .then(Commands.argument("enabled", BoolArgumentType.bool())
+                            .executes(ctx -> {
+                                boolean enabled = BoolArgumentType.getBool(ctx, "enabled");
+                                EmojiConfig.get().setFlagsEnabled(enabled);
+                                EmojiRegistry.INSTANCE.refreshShapingTable();
+                                ctx.getSource().sendSystemMessage(Component.translatable(enabled ? "twemoji.command.flags.enabled" : "twemoji.command.flags.disabled"));
+                                return 1;
+                            })
+                        )
+                    )
                     .then(Commands.literal("render")
                         .then(Commands.argument("size", IntegerArgumentType.integer(1, EmojiExporter.MAX_SIZE))
                             .then(Commands.argument("emoji", StringArgumentType.greedyString())

@@ -17,6 +17,8 @@
   "twemoji.picker.search_header": "Search",
   "twemoji.command.button.shown": "Picker button shown.",
   "twemoji.command.button.hidden": "Picker button hidden.",
+  "twemoji.command.flags.enabled": "Country flags enabled. Two regional indicator letters next to each other will now merge into the country flag.",
+  "twemoji.command.flags.disabled": "Country flags disabled. Regional indicator letters will render as text.",
   "twemoji.command.skin.reset": "Emoji skin tone reset to default.",
   "twemoji.command.skin.set": "Emoji skin tone set to %s.",
   "twemoji.command.render.success": "Rendered emoji to %s",

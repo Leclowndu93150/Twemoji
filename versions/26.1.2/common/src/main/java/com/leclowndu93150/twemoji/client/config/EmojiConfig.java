@@ -23,6 +23,7 @@ public class EmojiConfig {
     private boolean emoticonsEnabled = true;
     private boolean hoverTooltipsEnabled = true;
     private boolean pickerButtonVisible = true;
+    private boolean flagsEnabled = false;
     private final List<String> frequentEmojis = new ArrayList<>();
 
     private static Path configDir;
@@ -74,6 +75,15 @@ public class EmojiConfig {
         save();
     }
 
+    public boolean isFlagsEnabled() {
+        return flagsEnabled;
+    }
+
+    public void setFlagsEnabled(boolean value) {
+        this.flagsEnabled = value;
+        save();
+    }
+
     public List<String> getFrequentEmojis() {
         return List.copyOf(frequentEmojis);
     }
@@ -106,6 +116,9 @@ public class EmojiConfig {
                 if (obj != null && obj.has("pickerButtonVisible")) {
                     cfg.pickerButtonVisible = obj.get("pickerButtonVisible").getAsBoolean();
                 }
+                if (obj != null && obj.has("flagsEnabled")) {
+                    cfg.flagsEnabled = obj.get("flagsEnabled").getAsBoolean();
+                }
                 if (obj != null && obj.has("frequentEmojis")) {
                     JsonArray frequent = obj.getAsJsonArray("frequentEmojis");
                     for (JsonElement element : frequent) {
@@ -135,6 +148,7 @@ public class EmojiConfig {
                 obj.addProperty("emoticonsEnabled", emoticonsEnabled);
                 obj.addProperty("hoverTooltipsEnabled", hoverTooltipsEnabled);
                 obj.addProperty("pickerButtonVisible", pickerButtonVisible);
+                obj.addProperty("flagsEnabled", flagsEnabled);
                 JsonArray frequent = new JsonArray();
                 for (String name : frequentEmojis) {
                     frequent.add(name);

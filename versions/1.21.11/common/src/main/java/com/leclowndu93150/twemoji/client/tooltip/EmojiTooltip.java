@@ -58,6 +58,7 @@ public final class EmojiTooltip {
         }
         y = Mth.clamp(y, 4, Math.max(4, screenHeight - HEIGHT - 4));
 
+        graphics.nextStratum();
         graphics.fill(x, y, x + width, y + HEIGHT, PANEL_COLOR);
         graphics.fill(x + 1, y + 1, x + width - 1, y + HEIGHT - 1, FOOTER_COLOR);
         drawBorder(graphics, x, y, width, HEIGHT, BORDER_COLOR);

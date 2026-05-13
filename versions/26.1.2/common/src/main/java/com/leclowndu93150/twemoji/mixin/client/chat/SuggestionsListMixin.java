@@ -9,6 +9,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.CommandSuggestions;
 import net.minecraft.client.gui.components.EditBox;
+import org.spongepowered.asm.mixin.Dynamic;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -26,7 +27,9 @@ public class SuggestionsListMixin {
     @Shadow private List<Suggestion> suggestionList;
     @Shadow private int offset;
     @Shadow private int current;
-    @Shadow(aliases = "this$0") private CommandSuggestions twemoji$outer;
+    @Dynamic
+    @Shadow(aliases = "this$0", remap = false)
+    private CommandSuggestions twemoji$outer;
 
     private static final int EMOJI_SIZE = 10;
     private static final int EMOJI_PAD = 2;

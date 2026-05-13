@@ -1,0 +1,14 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.leclowndu93150.twemoji.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "refmap": "twemoji.refmap.json",
+  "client": [
+    "client.modlist.ModListScreenMixin",
+    "client.modlist.ModListScreenInfoPanelMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

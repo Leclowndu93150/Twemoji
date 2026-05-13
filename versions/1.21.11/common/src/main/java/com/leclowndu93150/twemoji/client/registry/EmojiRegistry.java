@@ -43,6 +43,7 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
 
     private Map<String, EmojiEntry> builtinEntries = Collections.emptyMap();
     private Map<String, List<EmojiEntry>> builtinCategoryEntries = Collections.emptyMap();
+    private Set<Integer> builtinCodepoints = Collections.emptySet();
     private Map<String, EmojiEntry> syncedStaticEntries = Collections.emptyMap();
     private Map<String, EmojiEntry> combinedEntries = Collections.emptyMap();
     private Map<Integer, EmojiEntry> codepointEntries = Collections.emptyMap();
@@ -148,11 +149,34 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
     protected void apply(LoadedData data, ResourceManager manager, ProfilerFiller profiler) {
         this.builtinEntries = data.entries();
         this.builtinCategoryEntries = data.categoryEntries();
+        this.builtinCodepoints = collectBuiltinCodepoints(data.entries().values());
         rebuildCombined();
         rebuildShapingTable(manager);
     }
 
+    private static Set<Integer> collectBuiltinCodepoints(Collection<EmojiEntry> entries) {
+        Set<Integer> result = new HashSet<>();
+        for (EmojiEntry entry : entries) {
+            String character = entry.character();
+            int i = 0;
+            int len = character.length();
+            while (i < len) {
+                int cp = character.codePointAt(i);
+                result.add(cp);
+                i += Character.charCount(cp);
+            }
+        }
+        return Set.copyOf(result);
+    }
+
+    public boolean isBuiltinCodepoint(int codepoint) {
+        return builtinCodepoints.contains(codepoint);
+    }
+
+    private ResourceManager cachedResourceManager;
+
     private void rebuildShapingTable(ResourceManager manager) {
+        this.cachedResourceManager = manager;
         Map<String, String> remap = loadJson(manager, REMAPPINGS_ID);
         if (remap.isEmpty()) {
             this.shapingTable = ShapingTable.EMPTY;
@@ -160,6 +184,7 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
             this.vs16Shapeable = Collections.emptySet();
             return;
         }
+        boolean flagsEnabled = com.leclowndu93150.twemoji.client.config.EmojiConfig.get().isFlagsEnabled();
         Map<String, Integer> rgiToPua = new HashMap<>();
         Map<Integer, String> puaToRgi = new HashMap<>();
         Set<Integer> vs16Shapeable = new HashSet<>();
@@ -169,6 +194,7 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
             if (pua.isEmpty() || real.isEmpty() || real.equals(pua)) continue;
             int puaCp = pua.codePointAt(0);
             if (Character.charCount(puaCp) != pua.length()) continue;
+            if (!flagsEnabled && containsRegionalIndicator(real)) continue;
             rgiToPua.putIfAbsent(real, puaCp);
             puaToRgi.putIfAbsent(puaCp, real);
             int firstCp = real.codePointAt(0);
@@ -180,6 +206,21 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
         this.shapingTable = ShapingTable.build(rgiToPua);
         this.puaToRgi = Map.copyOf(puaToRgi);
         this.vs16Shapeable = Set.copyOf(vs16Shapeable);
+    }
+
+    private static boolean containsRegionalIndicator(String s) {
+        int i = 0;
+        int len = s.length();
+        while (i < len) {
+            int cp = s.codePointAt(i);
+            if (cp >= 0x1F1E6 && cp <= 0x1F1FF) return true;
+            i += Character.charCount(cp);
+        }
+        return false;
+    }
+
+    public void refreshShapingTable() {
+        if (this.cachedResourceManager != null) rebuildShapingTable(this.cachedResourceManager);
     }
 
     public ShapingTable shapingTable() {
@@ -225,30 +266,37 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
         clearSyncedTextures();
         Map<String, EmojiEntry> entries = new LinkedHashMap<>();
         Map<String, List<EmojiEntry>> categoryMap = new LinkedHashMap<>();
+        Set<Integer> usedCodepoints = new HashSet<>(builtinCodepoints);
         for (SyncedEmoji emoji : staticEmojis) {
             try {
+                int codepoint = resolveUniqueSyncedCodepoint(emoji.codepoint(), usedCodepoints);
+                usedCodepoints.add(codepoint);
+
                 NativeImage image;
                 try (InputStream is = new ByteArrayInputStream(emoji.pngBytes())) {
                     image = NativeImage.read(NativeImage.Format.RGBA, is);
                 }
                 DynamicTexture texture = new DynamicTexture(() -> "twemoji_static_" + emoji.name(), image);
-                Identifier textureId = Identifier.fromNamespaceAndPath(Twemoji.MOD_ID, "synced/static/" + emoji.codepoint());
+                Identifier textureId = Identifier.fromNamespaceAndPath(Twemoji.MOD_ID, "synced/static/" + codepoint);
                 Minecraft.getInstance().getTextureManager().register(textureId, texture);
                 ownedTextures.add(texture);
 
-                String character = new String(Character.toChars(emoji.codepoint()));
+                String character = new String(Character.toChars(codepoint));
                 EmojiSprite sprite = new EmojiSprite.Custom(textureId);
-                EmojiEntry entry = new EmojiEntry(":" + emoji.name() + ":", character, sprite, List.of());
-                entries.put(emoji.name(), entry);
+                String resolvedName = resolveUniqueSyncedName(emoji.name(), entries);
+                EmojiEntry entry = new EmojiEntry(":" + resolvedName + ":", character, sprite, List.of());
+                entries.put(resolvedName, entry);
                 for (String alias : emoji.aliases()) {
-                    if (!alias.isBlank()) entries.putIfAbsent(alias, entry);
+                    if (alias.isBlank()) continue;
+                    if (builtinEntries.containsKey(alias) || entries.containsKey(alias)) continue;
+                    entries.put(alias, entry);
                 }
 
                 if (!emoji.category().isBlank()) {
                     categoryMap.computeIfAbsent(emoji.category(), k -> new ArrayList<>()).add(entry);
                 }
 
-                syncedStaticGlyphs.put(emoji.codepoint(), new StaticBakedGlyph(textureId));
+                syncedStaticGlyphs.put(codepoint, new StaticBakedGlyph(textureId));
             } catch (Exception e) {
                 Twemoji.LOGGER.warn("Failed to apply synced static emoji {}", emoji.name(), e);
             }
@@ -256,6 +304,26 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
         this.syncedStaticEntries = entries;
         this.customCategoryEntries = categoryMap;
         rebuildCombined();
+    }
+
+    private int resolveUniqueSyncedCodepoint(int requested, Set<Integer> used) {
+        if (!used.contains(requested)) return requested;
+        for (int cp = 0xE000; cp <= 0xF8FF; cp++) {
+            if (!used.contains(cp)) return cp;
+        }
+        for (int cp = 0xF0000; cp <= 0xFFFFD; cp++) {
+            if (!used.contains(cp)) return cp;
+        }
+        return requested;
+    }
+
+    private String resolveUniqueSyncedName(String name, Map<String, EmojiEntry> staged) {
+        if (!builtinEntries.containsKey(name) && !staged.containsKey(name)) return name;
+        for (int i = 2; i < 1000; i++) {
+            String candidate = name + "_" + i;
+            if (!builtinEntries.containsKey(candidate) && !staged.containsKey(candidate)) return candidate;
+        }
+        return name + "_" + System.nanoTime();
     }
 
     public EmojiEntry entryForTone(EmojiEntry entry, int skinTone) {

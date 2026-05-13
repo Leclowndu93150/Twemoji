@@ -40,9 +40,12 @@ public final class AnimatedEmojiRegistry {
 
     public synchronized void applyServerSync(List<SyncedEmoji> animatedEmojis) {
         clearTextures();
+        Set<Integer> used = new HashSet<>();
         for (SyncedEmoji emoji : animatedEmojis) {
             try {
-                AnimatedEmoji loaded = loadEmoji(emoji);
+                int codepoint = resolveUniqueCodepoint(emoji.codepoint(), used);
+                used.add(codepoint);
+                AnimatedEmoji loaded = loadEmoji(emoji, codepoint);
                 if (loaded == null) continue;
                 byCodepoint.put(loaded.codepoint(), loaded);
                 byName.put(loaded.name(), loaded);
@@ -54,7 +57,18 @@ public final class AnimatedEmojiRegistry {
         EmojiRegistry.INSTANCE.notifyAnimatedRegistryChanged();
     }
 
-    private AnimatedEmoji loadEmoji(SyncedEmoji emoji) throws IOException {
+    private static int resolveUniqueCodepoint(int requested, Set<Integer> used) {
+        if (!EmojiRegistry.INSTANCE.isBuiltinCodepoint(requested) && !used.contains(requested)) return requested;
+        for (int cp = 0xF000; cp <= 0xF8FF; cp++) {
+            if (!EmojiRegistry.INSTANCE.isBuiltinCodepoint(cp) && !used.contains(cp)) return cp;
+        }
+        for (int cp = 0xE000; cp <= 0xEFFF; cp++) {
+            if (!EmojiRegistry.INSTANCE.isBuiltinCodepoint(cp) && !used.contains(cp)) return cp;
+        }
+        return requested;
+    }
+
+    private AnimatedEmoji loadEmoji(SyncedEmoji emoji, int codepoint) throws IOException {
         AnimationMeta meta = parseMeta(emoji.mcmetaJson());
 
         NativeImage source;
@@ -79,7 +93,7 @@ public final class AnimatedEmojiRegistry {
             DynamicTexture texture = new DynamicTexture(() -> "twemoji_anim_" + emoji.name() + "_" + frameIndex, frame);
             ownedTextures.add(texture);
 
-            Identifier textureId = Identifier.fromNamespaceAndPath(Twemoji.MOD_ID, "synced/anim/" + emoji.codepoint() + "/frame_" + i);
+            Identifier textureId = Identifier.fromNamespaceAndPath(Twemoji.MOD_ID, "synced/anim/" + codepoint + "/frame_" + i);
             Minecraft.getInstance().getTextureManager().register(textureId, texture);
             frameTextures.add(textureId);
         }
@@ -88,7 +102,7 @@ public final class AnimatedEmojiRegistry {
         int[] schedule = buildSchedule(meta, frameCount);
         int frameTimeMs = Math.max(1, meta.frametime) * 50;
 
-        return new AnimatedEmoji(emoji.name(), emoji.codepoint(), frameTextures, schedule, frameTimeMs, emoji.category(), emoji.aliases());
+        return new AnimatedEmoji(emoji.name(), codepoint, frameTextures, schedule, frameTimeMs, emoji.category(), emoji.aliases());
     }
 
     private static int[] buildSchedule(AnimationMeta meta, int frameCount) {

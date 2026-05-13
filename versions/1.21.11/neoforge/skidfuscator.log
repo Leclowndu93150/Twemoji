@@ -1,0 +1,8 @@
+2026-05-13 00:46:39 WARN  Skidfuscator:76 - -----------------------------------------------------
+Config is not in workspace
+Your current working directory is: C:\Users\xdra1\IdeaProjects\Twemoji\versions\1.21.11\neoforge
+Your current config path is: C:\Users\xdra1\IdeaProjects\Twemoji\versions\1.21.11\neoforge\build\prism\skid\twemoji-1.21.11-NeoForge-1.0.0.skid.hocon
+Please execute Skidfuscator in the same directory as your config for best compatibility!!
+----------------------------------------------------- 
+
+2026-05-13 00:46:40 WARN  Skidfuscator:76 - ! No libraries were imported! If this is normal, ignore this.
