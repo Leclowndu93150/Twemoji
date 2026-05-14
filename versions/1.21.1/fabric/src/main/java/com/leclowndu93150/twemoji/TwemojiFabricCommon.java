@@ -1,8 +1,10 @@
 package com.leclowndu93150.twemoji;
 
+import com.leclowndu93150.twemoji.network.payload.EmojiRainTriggerPayload;
 import com.leclowndu93150.twemoji.network.payload.EmojiSyncChunkPayload;
 import com.leclowndu93150.twemoji.network.payload.EmojiSyncEndPayload;
 import com.leclowndu93150.twemoji.network.payload.EmojiSyncStartPayload;
+import com.leclowndu93150.twemoji.server.EmojiRainCommand;
 import com.leclowndu93150.twemoji.server.EmojiUploadCommand;
 import com.leclowndu93150.twemoji.server.ServerEmojiLoader;
 import com.leclowndu93150.twemoji.server.ServerEmojiSender;
@@ -23,14 +25,16 @@ public class TwemojiFabricCommon implements ModInitializer {
         PayloadTypeRegistry.playS2C().register(EmojiSyncStartPayload.TYPE, EmojiSyncStartPayload.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(EmojiSyncChunkPayload.TYPE, EmojiSyncChunkPayload.STREAM_CODEC);
         PayloadTypeRegistry.playS2C().register(EmojiSyncEndPayload.TYPE, EmojiSyncEndPayload.STREAM_CODEC);
+        PayloadTypeRegistry.playS2C().register(EmojiRainTriggerPayload.TYPE, EmojiRainTriggerPayload.STREAM_CODEC);
 
         ResourceManagerHelper.get(PackType.SERVER_DATA).registerReloadListener(TwemojiFabricRegistries.SERVER_EMOJI_LOADER);
 
         ServerLifecycleEvents.SYNC_DATA_PACK_CONTENTS.register((player, joined) -> sendTo(player));
 
-        CommandRegistrationCallback.EVENT.register((dispatcher, registry, env) ->
-            dispatcher.register(EmojiUploadCommand.build((server, player) -> sendTo(player)))
-        );
+        CommandRegistrationCallback.EVENT.register((dispatcher, registry, env) -> {
+            dispatcher.register(EmojiUploadCommand.build((server, player) -> sendTo(player)));
+            dispatcher.register(EmojiRainCommand.build(ServerPlayNetworking::send));
+        });
     }
 
     private static void sendTo(ServerPlayer player) {

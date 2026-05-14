@@ -8,6 +8,7 @@ import com.leclowndu93150.twemoji.client.registry.EmojiRegistry;
 import com.leclowndu93150.twemoji.client.picker.TwemojiKeyMappings;
 import com.leclowndu93150.twemoji.network.handler.ClientEmojiSync;
 import com.leclowndu93150.twemoji.network.payload.EmojiSyncChunkPayload;
+import com.leclowndu93150.twemoji.network.payload.EmojiRainTriggerPayload;
 import com.leclowndu93150.twemoji.network.payload.EmojiSyncEndPayload;
 import com.leclowndu93150.twemoji.network.payload.EmojiSyncStartPayload;
 import com.mojang.brigadier.arguments.BoolArgumentType;
@@ -63,6 +64,9 @@ public class TwemojiFabric implements ClientModInitializer {
         ClientPlayNetworking.registerGlobalReceiver(EmojiSyncEndPayload.TYPE, (payload, ctx) ->
             ctx.client().execute(() -> ClientEmojiSync.INSTANCE.onEnd(payload))
         );
+        ClientPlayNetworking.registerGlobalReceiver(EmojiRainTriggerPayload.TYPE, (payload, ctx) ->
+            ctx.client().execute(() -> ClientEmojiSync.INSTANCE.onRainTrigger(payload))
+        );
 
         ClientPlayConnectionEvents.JOIN.register((listener, sender, client) -> ClientEmojiSync.INSTANCE.onConnect(currentServerHost(client)));
         ClientPlayConnectionEvents.DISCONNECT.register((listener, client) -> ClientEmojiSync.INSTANCE.onDisconnect());
@@ -81,18 +85,6 @@ public class TwemojiFabric implements ClientModInitializer {
                                 ctx.getSource().sendFeedback(msg);
                                 return 1;
                             })
-                        )
-                    )
-                    .then(ClientCommandManager.literal("rain")
-                        .then(ClientCommandManager.argument("emoji", StringArgumentType.greedyString())
-                            .suggests((ctx, builder) -> EmojiCommandSuggestions.suggest(builder))
-                            .executes(ctx -> runRain(ctx.getSource(), StringArgumentType.getString(ctx, "emoji"), 8))
-                        )
-                        .then(ClientCommandManager.argument("seconds", IntegerArgumentType.integer(1, EmojiRain.MAX_DURATION_SECONDS))
-                            .then(ClientCommandManager.argument("emoji", StringArgumentType.greedyString())
-                                .suggests((ctx, builder) -> EmojiCommandSuggestions.suggest(builder))
-                                .executes(ctx -> runRain(ctx.getSource(), StringArgumentType.getString(ctx, "emoji"), IntegerArgumentType.getInteger(ctx, "seconds")))
-                            )
                         )
                     )
                     .then(ClientCommandManager.literal("flags")
@@ -130,17 +122,6 @@ public class TwemojiFabric implements ClientModInitializer {
                     )
             )
         );
-    }
-
-    private static int runRain(FabricClientCommandSource source, String input, int seconds) {
-        EmojiRegistry.EmojiEntry entry = EmojiRegistry.INSTANCE.get(input.trim());
-        if (entry == null) {
-            source.sendError(Component.translatable("twemoji.command.rain.unknown_emoji", input));
-            return 0;
-        }
-        EmojiRain.start(EmojiRegistry.INSTANCE.spriteForTone(entry, EmojiConfig.get().getSkinTone()), seconds);
-        source.sendFeedback(Component.translatable("twemoji.command.rain.started", entry.shortcode(), seconds));
-        return 1;
     }
 
     private static String currentServerHost(Minecraft client) {

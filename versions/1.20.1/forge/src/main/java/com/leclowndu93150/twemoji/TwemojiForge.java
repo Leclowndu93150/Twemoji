@@ -1,5 +1,6 @@
 package com.leclowndu93150.twemoji;
 
+import com.leclowndu93150.twemoji.server.EmojiRainCommand;
 import com.leclowndu93150.twemoji.server.EmojiUploadCommand;
 import com.leclowndu93150.twemoji.server.ServerEmojiLoader;
 import com.leclowndu93150.twemoji.server.ServerEmojiSender;
@@ -20,17 +21,18 @@ public class TwemojiForge {
     public TwemojiForge() {
         FMLJavaModLoadingContext.get().getModEventBus().addListener(this::commonSetup);
 
-        MinecraftForge.EVENT_BUS.addListener(AddReloadListenerEvent.class, event ->
+        MinecraftForge.EVENT_BUS.<AddReloadListenerEvent>addListener(event ->
             event.addListener(ServerEmojiLoader.INSTANCE)
         );
 
-        MinecraftForge.EVENT_BUS.addListener(OnDatapackSyncEvent.class, event ->
+        MinecraftForge.EVENT_BUS.<OnDatapackSyncEvent>addListener(event ->
             event.getPlayers().forEach(TwemojiForge::sendTo)
         );
 
-        MinecraftForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, event ->
-            event.getDispatcher().register(EmojiUploadCommand.build((server, player) -> sendTo(player)))
-        );
+        MinecraftForge.EVENT_BUS.<RegisterCommandsEvent>addListener(event -> {
+            event.getDispatcher().register(EmojiUploadCommand.build((server, player) -> sendTo(player)));
+            event.getDispatcher().register(EmojiRainCommand.build(TwemojiNetwork::sendTo));
+        });
 
         if (FMLEnvironment.dist == Dist.CLIENT) {
             TwemojiForgeClient.init(FMLJavaModLoadingContext.get().getModEventBus());

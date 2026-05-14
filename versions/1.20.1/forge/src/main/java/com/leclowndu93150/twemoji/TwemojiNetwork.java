@@ -1,6 +1,7 @@
 package com.leclowndu93150.twemoji;
 
 import com.leclowndu93150.twemoji.network.handler.ClientEmojiSync;
+import com.leclowndu93150.twemoji.network.payload.EmojiRainTriggerPayload;
 import com.leclowndu93150.twemoji.network.payload.EmojiSyncChunkPayload;
 import com.leclowndu93150.twemoji.network.payload.EmojiSyncEndPayload;
 import com.leclowndu93150.twemoji.network.payload.EmojiSyncStartPayload;
@@ -46,6 +47,11 @@ public final class TwemojiNetwork {
             .decoder(EmojiSyncEndPayload::read)
             .consumerNetworkThread(TwemojiNetwork::handleEnd)
             .add();
+        INSTANCE.messageBuilder(EmojiRainTriggerPayload.class, 3, NetworkDirection.PLAY_TO_CLIENT)
+            .encoder(EmojiRainTriggerPayload::write)
+            .decoder(EmojiRainTriggerPayload::read)
+            .consumerNetworkThread(TwemojiNetwork::handleRainTrigger)
+            .add();
     }
 
     private static void handleStart(EmojiSyncStartPayload payload, Supplier<NetworkEvent.Context> ctx) {
@@ -68,6 +74,14 @@ public final class TwemojiNetwork {
         NetworkEvent.Context context = ctx.get();
         if (FMLEnvironment.dist == Dist.CLIENT) {
             context.enqueueWork(() -> ClientEmojiSync.INSTANCE.onEnd(payload));
+        }
+        context.setPacketHandled(true);
+    }
+
+    private static void handleRainTrigger(EmojiRainTriggerPayload payload, Supplier<NetworkEvent.Context> ctx) {
+        NetworkEvent.Context context = ctx.get();
+        if (FMLEnvironment.dist == Dist.CLIENT) {
+            context.enqueueWork(() -> ClientEmojiSync.INSTANCE.onRainTrigger(payload));
         }
         context.setPacketHandled(true);
     }

@@ -18,6 +18,20 @@ prism {
 
     curseMaven()
 
+    publishing {
+        changelogFile = "CHANGELOG.md"
+
+        curseforge {
+            accessToken = providers.environmentVariable("CURSEFORGE_TOKEN")
+            projectId = "1543001"
+        }
+
+        modrinth {
+            accessToken = providers.environmentVariable("MODRINTH_TOKEN")
+            projectId = ""
+        }
+    }
+
     version("1.20.1") {
         fabric {
             loaderVersion = "0.19.2"
@@ -25,6 +39,11 @@ prism {
 
             dependencies {
                 modCompileOnly("curse.maven:modmenu-308702:5162837")
+            }
+
+            publishingDependencies {
+                requires("fabric-api")
+                optional("modmenu")
             }
         }
         forge {
@@ -40,6 +59,11 @@ prism {
             dependencies {
                 modCompileOnly("curse.maven:modmenu-308702:7808443")
             }
+
+            publishingDependencies {
+                requires("fabric-api")
+                optional("modmenu")
+            }
         }
         neoforge {
             loaderVersion = "21.1.228"
@@ -54,6 +78,11 @@ prism {
             dependencies {
                 modCompileOnly("curse.maven:modmenu-308702:7808841")
             }
+
+            publishingDependencies {
+                requires("fabric-api")
+                optional("modmenu")
+            }
         }
         neoforge {
             loaderVersion = "21.11.42"
@@ -67,6 +96,11 @@ prism {
 
             dependencies {
                 implementation("curse.maven:modmenu-308702:8065321")
+            }
+
+            publishingDependencies {
+                requires("fabric-api")
+                optional("modmenu")
             }
         }
         neoforge {

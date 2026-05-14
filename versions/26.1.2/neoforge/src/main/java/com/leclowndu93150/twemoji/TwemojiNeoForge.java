@@ -1,8 +1,10 @@
 package com.leclowndu93150.twemoji;
 
+import com.leclowndu93150.twemoji.network.payload.EmojiRainTriggerPayload;
 import com.leclowndu93150.twemoji.network.payload.EmojiSyncChunkPayload;
 import com.leclowndu93150.twemoji.network.payload.EmojiSyncEndPayload;
 import com.leclowndu93150.twemoji.network.payload.EmojiSyncStartPayload;
+import com.leclowndu93150.twemoji.server.EmojiRainCommand;
 import com.leclowndu93150.twemoji.server.EmojiUploadCommand;
 import com.leclowndu93150.twemoji.server.ServerEmojiLoader;
 import com.leclowndu93150.twemoji.server.ServerEmojiSender;
@@ -35,9 +37,10 @@ public class TwemojiNeoForge {
             event.getRelevantPlayers().forEach(TwemojiNeoForge::sendTo)
         );
 
-        NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, event ->
-            event.getDispatcher().register(EmojiUploadCommand.build((server, player) -> sendTo(player)))
-        );
+        NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, event -> {
+            event.getDispatcher().register(EmojiUploadCommand.build((server, player) -> sendTo(player)));
+            event.getDispatcher().register(EmojiRainCommand.build((player, payload) -> PacketDistributor.sendToPlayer(player, payload)));
+        });
 
         if (FMLEnvironment.getDist() == Dist.CLIENT) {
             TwemojiNeoForgeClient.init(modBus);
@@ -49,6 +52,7 @@ public class TwemojiNeoForge {
         registrar.playToClient(EmojiSyncStartPayload.TYPE, EmojiSyncStartPayload.STREAM_CODEC);
         registrar.playToClient(EmojiSyncChunkPayload.TYPE, EmojiSyncChunkPayload.STREAM_CODEC);
         registrar.playToClient(EmojiSyncEndPayload.TYPE, EmojiSyncEndPayload.STREAM_CODEC);
+        registrar.playToClient(EmojiRainTriggerPayload.TYPE, EmojiRainTriggerPayload.STREAM_CODEC);
     }
 
     private static void sendTo(ServerPlayer player) {

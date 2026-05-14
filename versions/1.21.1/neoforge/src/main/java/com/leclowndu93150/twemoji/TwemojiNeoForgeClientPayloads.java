@@ -1,6 +1,7 @@
 package com.leclowndu93150.twemoji;
 
 import com.leclowndu93150.twemoji.network.handler.ClientEmojiSync;
+import com.leclowndu93150.twemoji.network.payload.EmojiRainTriggerPayload;
 import com.leclowndu93150.twemoji.network.payload.EmojiSyncChunkPayload;
 import com.leclowndu93150.twemoji.network.payload.EmojiSyncEndPayload;
 import com.leclowndu93150.twemoji.network.payload.EmojiSyncStartPayload;
@@ -15,8 +16,10 @@ public final class TwemojiNeoForgeClientPayloads {
         IPayloadHandler<EmojiSyncStartPayload> start = (payload, ctx) -> ClientEmojiSync.INSTANCE.onStart(payload);
         IPayloadHandler<EmojiSyncChunkPayload> chunk = (payload, ctx) -> ClientEmojiSync.INSTANCE.onChunk(payload);
         IPayloadHandler<EmojiSyncEndPayload> end = (payload, ctx) -> ClientEmojiSync.INSTANCE.onEnd(payload);
+        IPayloadHandler<EmojiRainTriggerPayload> rain = (payload, ctx) -> ctx.enqueueWork(() -> ClientEmojiSync.INSTANCE.onRainTrigger(payload));
         registrar.playToClient(EmojiSyncStartPayload.TYPE, EmojiSyncStartPayload.STREAM_CODEC, start);
         registrar.playToClient(EmojiSyncChunkPayload.TYPE, EmojiSyncChunkPayload.STREAM_CODEC, chunk);
         registrar.playToClient(EmojiSyncEndPayload.TYPE, EmojiSyncEndPayload.STREAM_CODEC, end);
+        registrar.playToClient(EmojiRainTriggerPayload.TYPE, EmojiRainTriggerPayload.STREAM_CODEC, rain);
     }
 }

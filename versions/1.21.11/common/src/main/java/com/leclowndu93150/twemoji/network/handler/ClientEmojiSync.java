@@ -2,9 +2,12 @@ package com.leclowndu93150.twemoji.network.handler;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.leclowndu93150.twemoji.client.config.EmojiConfig;
 import com.leclowndu93150.twemoji.client.registry.AnimatedEmojiRegistry;
 import com.leclowndu93150.twemoji.client.registry.EmojiRegistry;
+import com.leclowndu93150.twemoji.client.render.EmojiRain;
 import com.leclowndu93150.twemoji.client.config.ServerEmojiCache;
+import com.leclowndu93150.twemoji.network.payload.EmojiRainTriggerPayload;
 import com.leclowndu93150.twemoji.Twemoji;
 
 import java.io.ByteArrayOutputStream;
@@ -94,6 +97,12 @@ public final class ClientEmojiSync {
         if (currentServerKey != null) {
             ServerEmojiCache.save(currentServerKey, assembled, icons);
         }
+    }
+
+    public void onRainTrigger(EmojiRainTriggerPayload payload) {
+        EmojiRegistry.EmojiEntry entry = EmojiRegistry.INSTANCE.get(payload.emojiName().trim());
+        if (entry == null) return;
+        EmojiRain.start(EmojiRegistry.INSTANCE.spriteForTone(entry, EmojiConfig.get().getSkinTone()), payload.seconds());
     }
 
     public synchronized void onDisconnect() {

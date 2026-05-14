@@ -27,6 +27,8 @@
   "twemoji.command.rain.usage": "Use /twemoji rain <emoji> [seconds]",
   "twemoji.command.rain.started": "Raining %s for %ss",
   "twemoji.command.rain.unknown_emoji": "Unknown emoji: %s",
+  "twemoji.command.rain.triggered": "Triggered rain of %s for %s player(s)",
+  "twemoji.command.rain.no_permission": "You do not have permission to trigger rain for other players.",
   "twemoji.command.upload.usage": "Use /emoji upload <name> <file>",
   "twemoji.command.upload.success": "Uploaded emoji :%s:",
   "twemoji.command.upload.no_file": "File not found: %s",

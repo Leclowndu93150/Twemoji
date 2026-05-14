@@ -66,18 +66,6 @@ public final class TwemojiNeoForgeClient {
                             })
                         )
                     )
-                    .then(Commands.literal("rain")
-                        .then(Commands.argument("emoji", StringArgumentType.greedyString())
-                            .suggests((ctx, builder) -> EmojiCommandSuggestions.suggest(builder))
-                            .executes(ctx -> runRain(ctx.getSource(), StringArgumentType.getString(ctx, "emoji"), 8))
-                        )
-                        .then(Commands.argument("seconds", IntegerArgumentType.integer(1, EmojiRain.MAX_DURATION_SECONDS))
-                            .then(Commands.argument("emoji", StringArgumentType.greedyString())
-                                .suggests((ctx, builder) -> EmojiCommandSuggestions.suggest(builder))
-                                .executes(ctx -> runRain(ctx.getSource(), StringArgumentType.getString(ctx, "emoji"), IntegerArgumentType.getInteger(ctx, "seconds")))
-                            )
-                        )
-                    )
                     .then(Commands.literal("button")
                         .then(Commands.argument("visible", BoolArgumentType.bool())
                             .executes(ctx -> {
@@ -113,17 +101,6 @@ public final class TwemojiNeoForgeClient {
                     )
             )
         );
-    }
-
-    private static int runRain(CommandSourceStack source, String input, int seconds) {
-        EmojiRegistry.EmojiEntry entry = EmojiRegistry.INSTANCE.get(input.trim());
-        if (entry == null) {
-            source.sendSystemMessage(Component.translatable("twemoji.command.rain.unknown_emoji", input));
-            return 0;
-        }
-        EmojiRain.start(EmojiRegistry.INSTANCE.spriteForTone(entry, EmojiConfig.get().getSkinTone()), seconds);
-        source.sendSystemMessage(Component.translatable("twemoji.command.rain.started", entry.shortcode(), seconds));
-        return 1;
     }
 
     private static String currentServerHost() {

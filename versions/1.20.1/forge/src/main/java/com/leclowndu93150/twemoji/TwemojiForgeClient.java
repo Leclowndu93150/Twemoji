@@ -36,21 +36,21 @@ public final class TwemojiForgeClient {
     public static void init(IEventBus modBus) {
         EmojiConfig.init(FMLPaths.CONFIGDIR.get());
 
-        modBus.addListener(RegisterClientReloadListenersEvent.class, event ->
+        modBus.<RegisterClientReloadListenersEvent>addListener(event ->
             event.registerReloadListener(EmojiRegistry.INSTANCE)
         );
 
-        modBus.addListener(RegisterKeyMappingsEvent.class, event -> event.register(TwemojiKeyMappings.OPEN_PICKER));
+        modBus.<RegisterKeyMappingsEvent>addListener(event -> event.register(TwemojiKeyMappings.OPEN_PICKER));
 
-        MinecraftForge.EVENT_BUS.addListener(RenderGuiEvent.Post.class, event -> {
+        MinecraftForge.EVENT_BUS.<RenderGuiEvent.Post>addListener(event -> {
             Minecraft client = Minecraft.getInstance();
             EmojiRain.render(event.getGuiGraphics(), client.getWindow().getGuiScaledWidth(), client.getWindow().getGuiScaledHeight());
         });
 
-        MinecraftForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingIn.class, event -> ClientEmojiSync.INSTANCE.onConnect(currentServerHost()));
-        MinecraftForge.EVENT_BUS.addListener(ClientPlayerNetworkEvent.LoggingOut.class, event -> ClientEmojiSync.INSTANCE.onDisconnect());
+        MinecraftForge.EVENT_BUS.<ClientPlayerNetworkEvent.LoggingIn>addListener(event -> ClientEmojiSync.INSTANCE.onConnect(currentServerHost()));
+        MinecraftForge.EVENT_BUS.<ClientPlayerNetworkEvent.LoggingOut>addListener(event -> ClientEmojiSync.INSTANCE.onDisconnect());
 
-        MinecraftForge.EVENT_BUS.addListener(RegisterClientCommandsEvent.class, event ->
+        MinecraftForge.EVENT_BUS.<RegisterClientCommandsEvent>addListener(event ->
             event.getDispatcher().register(
                 Commands.literal("twemoji")
                     .then(Commands.literal("skin")
@@ -64,18 +64,6 @@ public final class TwemojiForgeClient {
                                 ctx.getSource().sendSystemMessage(msg);
                                 return 1;
                             })
-                        )
-                    )
-                    .then(Commands.literal("rain")
-                        .then(Commands.argument("emoji", StringArgumentType.greedyString())
-                            .suggests((ctx, builder) -> EmojiCommandSuggestions.suggest(builder))
-                            .executes(ctx -> runRain(ctx.getSource(), StringArgumentType.getString(ctx, "emoji"), 8))
-                        )
-                        .then(Commands.argument("seconds", IntegerArgumentType.integer(1, EmojiRain.MAX_DURATION_SECONDS))
-                            .then(Commands.argument("emoji", StringArgumentType.greedyString())
-                                .suggests((ctx, builder) -> EmojiCommandSuggestions.suggest(builder))
-                                .executes(ctx -> runRain(ctx.getSource(), StringArgumentType.getString(ctx, "emoji"), IntegerArgumentType.getInteger(ctx, "seconds")))
-                            )
                         )
                     )
                     .then(Commands.literal("button")
@@ -113,17 +101,6 @@ public final class TwemojiForgeClient {
                     )
             )
         );
-    }
-
-    private static int runRain(CommandSourceStack source, String input, int seconds) {
-        EmojiRegistry.EmojiEntry entry = EmojiRegistry.INSTANCE.get(input.trim());
-        if (entry == null) {
-            source.sendSystemMessage(Component.translatable("twemoji.command.rain.unknown_emoji", input));
-            return 0;
-        }
-        EmojiRain.start(EmojiRegistry.INSTANCE.spriteForTone(entry, EmojiConfig.get().getSkinTone()), seconds);
-        source.sendSystemMessage(Component.translatable("twemoji.command.rain.started", entry.shortcode(), seconds));
-        return 1;
     }
 
     private static String currentServerHost() {

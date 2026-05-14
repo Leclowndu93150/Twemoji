@@ -14,7 +14,7 @@ import org.jetbrains.annotations.Nullable;
 @Mixin(ModListScreen.class)
 public class ModListScreenMixin {
 
-    @Shadow
+    @Shadow(remap = false)
     @Nullable
     private ModListWidget.ModEntry selected;
 
