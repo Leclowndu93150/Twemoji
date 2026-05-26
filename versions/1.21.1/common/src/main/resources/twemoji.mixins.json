@@ -18,6 +18,7 @@
     "client.font.FontSetSourceMixin",
     "client.font.FontStringRenderOutputMixin",
     "client.input.AbstractSignEditScreenMixin",
+    "client.input.BookEditScreenMixin",
     "client.input.accessor.AbstractScrollWidgetAccessor",
     "client.input.ContainerEventHandlerMixin",
     "client.input.EditBoxMixin",

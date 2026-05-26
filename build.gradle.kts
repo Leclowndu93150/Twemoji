@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.leclowndu93150"
-version = "1.0.0"
+version = "1.0.1"
 
 prism {
     metadata {
@@ -28,7 +28,7 @@ prism {
 
         modrinth {
             accessToken = providers.environmentVariable("MODRINTH_TOKEN")
-            projectId = ""
+            projectId = "aCiQlU58"
         }
     }
 

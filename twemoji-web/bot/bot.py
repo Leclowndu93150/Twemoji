@@ -1,15 +1,20 @@
 import os
+import random
 import re
-import subprocess
-import requests
+
 import discord
+import requests
 from dotenv import load_dotenv
+
+from metrics import Metrics
 
 load_dotenv()
 
 BOT_TOKEN = os.environ["BOT_TOKEN"]
 API_URL = os.getenv("API_URL", "http://localhost:3000")
 SITE_URL = os.getenv("SITE_URL", "https://leclowndu93150.dev/twemoji")
+PANEL_ENDPOINT = os.getenv("PANEL_ENDPOINT")
+PANEL_HMAC_KEY = os.getenv("PANEL_HMAC_KEY")
 
 EMOJI_PATTERN = re.compile(r"<(a?):(\w+):(\d+)>")
 
@@ -23,6 +28,11 @@ REPLIES = [
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
+
+metrics = None
+if PANEL_ENDPOINT and PANEL_HMAC_KEY:
+    metrics = Metrics(endpoint=PANEL_ENDPOINT, service="bot", hmac_key=PANEL_HMAC_KEY)
+    metrics.start()
 
 
 def parse_emojis(content):
@@ -57,6 +67,13 @@ async def on_message(message):
     body = message.content[len("!twemoji"):]
     emojis = parse_emojis(body)
 
+    if metrics:
+        metrics.track(
+            "command_used",
+            user_key=str(message.author.id),
+            props={"cmd": "twemoji", "emoji_count": len(emojis)},
+        )
+
     if not emojis:
         await message.reply("no emojis found!! put some custom emojis after !twemoji :3")
         return
@@ -69,17 +86,9 @@ async def on_message(message):
         await message.reply(f"something broke :( try again maybe? ({e})")
         return
 
-    import random
     reply_line = random.choice(REPLIES)
     await message.reply(f"{reply_line}\n{SITE_URL}/editor?t={token}")
 
 
 if __name__ == "__main__":
-    server_proc = subprocess.Popen(
-        ["node", "index.js"],
-        cwd=os.path.join(os.path.dirname(__file__), "..", "server"),
-    )
-    try:
-        client.run(BOT_TOKEN)
-    finally:
-        server_proc.terminate()
+    client.run(BOT_TOKEN)
