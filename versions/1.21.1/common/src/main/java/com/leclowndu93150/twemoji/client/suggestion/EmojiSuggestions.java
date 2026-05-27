@@ -177,9 +177,14 @@ public final class EmojiSuggestions {
             if (Character.isWhitespace(c)) break;
         }
         if (colonStart == -1) return null;
+        if (colonStart > 0 && isIdentifierChar(beforeCursor.charAt(colonStart - 1))) return null;
         String prefix = beforeCursor.substring(colonStart + 1);
         if (prefix.contains(":") || prefix.chars().anyMatch(Character::isWhitespace)) return null;
         return new Match(colonStart, prefix);
+    }
+
+    private static boolean isIdentifierChar(char c) {
+        return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_' || c == '-' || c == '.';
     }
 
     private record Match(int start, String prefix) {}

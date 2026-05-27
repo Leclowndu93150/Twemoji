@@ -42,6 +42,7 @@ public class CommandSuggestionsMixin {
             if (c == ' ') break;
         }
         if (colonStart == -1) return;
+        if (colonStart > 0 && isIdentifierChar(beforeCursor.charAt(colonStart - 1))) return;
 
         String prefix = beforeCursor.substring(colonStart + 1);
         if (prefix.contains(":") || prefix.contains(" ")) return;
@@ -65,5 +66,9 @@ public class CommandSuggestionsMixin {
             SuggestionsListAccessor listAcc = (SuggestionsListAccessor) list;
             listAcc.getRect().setWidth(EMOJI_COL + MAX_SUGGESTION_WIDTH + 1);
         }
+    }
+
+    private static boolean isIdentifierChar(char c) {
+        return c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_' || c == '-' || c == '.';
     }
 }
