@@ -14,6 +14,8 @@
     "client.chat.accessor.SuggestionsListAccessor",
     "client.chat.SuggestionsListMixin",
     "client.font.BakedGlyphAccessor",
+    "client.font.FontManagerMixin",
+    "client.font.FontSetReloadMixin",
     "client.font.FontMixin",
     "client.font.FontSetSourceMixin",
     "client.font.FontStringRenderOutputMixin",

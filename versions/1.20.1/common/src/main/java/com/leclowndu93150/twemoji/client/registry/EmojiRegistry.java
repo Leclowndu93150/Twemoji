@@ -34,7 +34,7 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
     private static final ResourceLocation SHORTCODES_ID = new ResourceLocation("emoji_shortcodes", "lang/en_us.json");
     private static final ResourceLocation REMAPPINGS_ID = new ResourceLocation("emoji_remappings", "lang/en_us.json");
     private static final ResourceLocation EMOJILIB_ID = new ResourceLocation("twemoji", "emojilib.json");
-    private static final ResourceLocation FONT_ID = new ResourceLocation("minecraft", "font/default.json");
+    private static final ResourceLocation FONT_ID = new ResourceLocation("twemoji", "twemoji_internal/default.json");
     private static final ResourceLocation EMOJI_SHEET = new ResourceLocation("twemoji", "textures/font/emoji.png");
     private static final ResourceLocation FLAGS_SHEET = new ResourceLocation("twemoji", "textures/font/flags.png");
     private static final int SHEET_W = 288;
@@ -45,6 +45,8 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
     private Map<String, List<EmojiEntry>> builtinCategoryEntries = Collections.emptyMap();
     private Set<Integer> builtinCodepoints = Collections.emptySet();
     private Map<String, EmojiEntry> syncedStaticEntries = Collections.emptyMap();
+    private List<EmojiEntry> syncedStaticPrimaryEntries = List.of();
+    private Map<String, List<EmojiEntry>> syncedStaticCategoryEntries = Collections.emptyMap();
     private Map<String, EmojiEntry> combinedEntries = Collections.emptyMap();
     private Map<Integer, EmojiEntry> codepointEntries = Collections.emptyMap();
     private List<EmojiEntry> customEntries = List.of();
@@ -265,6 +267,7 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
         this.categoryIcons = Map.copyOf(categoryIcons);
         clearSyncedTextures();
         Map<String, EmojiEntry> entries = new LinkedHashMap<>();
+        List<EmojiEntry> primaryEntries = new ArrayList<>();
         Map<String, List<EmojiEntry>> categoryMap = new LinkedHashMap<>();
         Set<Integer> usedCodepoints = new HashSet<>(builtinCodepoints);
         for (SyncedEmoji emoji : staticEmojis) {
@@ -286,6 +289,7 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
                 String resolvedName = resolveUniqueSyncedName(emoji.name(), entries);
                 EmojiEntry entry = new EmojiEntry(":" + resolvedName + ":", character, sprite, List.of());
                 entries.put(resolvedName, entry);
+                primaryEntries.add(entry);
                 for (String alias : emoji.aliases()) {
                     if (alias.isBlank()) continue;
                     if (builtinEntries.containsKey(alias) || entries.containsKey(alias)) continue;
@@ -302,7 +306,8 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
             }
         }
         this.syncedStaticEntries = entries;
-        this.customCategoryEntries = categoryMap;
+        this.syncedStaticPrimaryEntries = List.copyOf(primaryEntries);
+        this.syncedStaticCategoryEntries = copyCategoryMap(categoryMap);
         rebuildCombined();
     }
 
@@ -357,6 +362,8 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
         ownedTextures.clear();
         syncedStaticGlyphs.clear();
         syncedStaticEntries = Collections.emptyMap();
+        syncedStaticPrimaryEntries = List.of();
+        syncedStaticCategoryEntries = Collections.emptyMap();
         customCategoryEntries = Collections.emptyMap();
         categoryIcons = Collections.emptyMap();
     }
@@ -364,7 +371,7 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
     private void rebuildCombined() {
         Map<String, EmojiEntry> combined = new LinkedHashMap<>(builtinEntries);
         combined.putAll(syncedStaticEntries);
-        List<EmojiEntry> custom = new ArrayList<>(syncedStaticEntries.values());
+        List<EmojiEntry> custom = new ArrayList<>(syncedStaticPrimaryEntries);
         Map<String, List<EmojiEntry>> animCategoryMap = new LinkedHashMap<>();
         for (Map.Entry<String, AnimatedEmojiRegistry.AnimatedEmoji> animEntry : AnimatedEmojiRegistry.INSTANCE.getAll().entrySet()) {
             String name = animEntry.getKey();
@@ -383,7 +390,7 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
                 animCategoryMap.computeIfAbsent(emoji.category(), k -> new ArrayList<>()).add(entry);
             }
         }
-        Map<String, List<EmojiEntry>> mergedCustomCategories = new LinkedHashMap<>(customCategoryEntries);
+        Map<String, List<EmojiEntry>> mergedCustomCategories = copyCategoryMap(syncedStaticCategoryEntries);
         for (Map.Entry<String, List<EmojiEntry>> e : animCategoryMap.entrySet()) {
             mergedCustomCategories.merge(e.getKey(), e.getValue(), (a, b) -> {
                 List<EmojiEntry> merged = new ArrayList<>(a);
@@ -396,6 +403,14 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
         this.customEntries = List.copyOf(custom);
         this.customCategoryEntries = mergedCustomCategories;
         rebuildSuggestionIndex();
+    }
+
+    private static Map<String, List<EmojiEntry>> copyCategoryMap(Map<String, List<EmojiEntry>> source) {
+        Map<String, List<EmojiEntry>> copy = new LinkedHashMap<>();
+        for (Map.Entry<String, List<EmojiEntry>> entry : source.entrySet()) {
+            copy.put(entry.getKey(), new ArrayList<>(entry.getValue()));
+        }
+        return copy;
     }
 
     private void rebuildSuggestionIndex() {

@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.leclowndu93150"
-version = "1.0.2"
+version = "1.0.3"
 
 prism {
     metadata {

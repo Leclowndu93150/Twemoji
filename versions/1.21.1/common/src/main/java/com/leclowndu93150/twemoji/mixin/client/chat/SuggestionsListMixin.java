@@ -11,10 +11,10 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.CommandSuggestions;
 import net.minecraft.client.gui.components.EditBox;
-import org.spongepowered.asm.mixin.Dynamic;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -29,8 +29,7 @@ public class SuggestionsListMixin {
     @Shadow private List<Suggestion> suggestionList;
     @Shadow private int offset;
     @Shadow private int current;
-    @Dynamic
-    @Shadow(aliases = "this$0", remap = false)
+    @Unique
     private CommandSuggestions twemoji$outer;
 
     private static final int EMOJI_SIZE = 10;
@@ -40,6 +39,7 @@ public class SuggestionsListMixin {
 
     @Inject(method = "<init>", at = @At("TAIL"))
     private void twemoji$widenForEmojiSuggestions(CommandSuggestions this$0, int p_93957_, int p_93958_, int p_93959_, List p_93960_, boolean p_93961_, CallbackInfo ci) {
+        this.twemoji$outer = this$0;
         for (Suggestion suggestion : suggestionList) {
             if (suggestion instanceof EmojiSuggestion) {
                 ((SuggestionsListAccessor)(Object)this).getRect().setWidth(EMOJI_COL + MAX_LABEL_WIDTH + 1);
