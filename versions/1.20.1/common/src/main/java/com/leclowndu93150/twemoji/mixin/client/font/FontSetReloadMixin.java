@@ -24,7 +24,7 @@ public abstract class FontSetReloadMixin {
     private List<GlyphProvider> twemoji$augmentProviders(List<GlyphProvider> providers) {
         ResourceLocation name = ((FontSetAccessor) (Object) this).twemoji$name();
         if (!Minecraft.DEFAULT_FONT.equals(name)) return providers;
-        List<GlyphProvider> extra = TwemojiFontInjection.buildProviders();
+        List<GlyphProvider> extra = TwemojiFontInjection.awaitProvidersToInject();
         if (extra.isEmpty()) return providers;
         List<GlyphProvider> combined = new ArrayList<>(extra);
         combined.addAll(providers);

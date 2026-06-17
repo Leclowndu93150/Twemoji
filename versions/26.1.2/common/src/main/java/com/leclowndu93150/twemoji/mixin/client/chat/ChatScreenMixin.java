@@ -5,6 +5,8 @@ import com.leclowndu93150.twemoji.client.picker.EmojiPicker;
 import com.leclowndu93150.twemoji.client.registry.EmojiRegistry;
 import com.leclowndu93150.twemoji.client.tooltip.EmojiTooltip;
 import com.leclowndu93150.twemoji.client.picker.TwemojiKeyMappings;
+import com.leclowndu93150.twemoji.mixin.client.chat.accessor.ChatComponentAccessor;
+import net.minecraft.client.multiplayer.chat.GuiMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
@@ -12,8 +14,11 @@ import net.minecraft.client.gui.components.ChatComponent;
 import net.minecraft.client.gui.screens.ChatScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.util.FormattedCharSequence;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+
+import java.util.Map;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -151,7 +156,10 @@ public class ChatScreenMixin {
     private EmojiTooltip.Hit twemoji$chatMessageHit(int mouseX, int mouseY) {
         ChatScreen self = (ChatScreen)(Object)this;
         Minecraft minecraft = Minecraft.getInstance();
-        EmojiTooltip.ChatCollector collector = new EmojiTooltip.ChatCollector(self.getFont(), mouseX, mouseY);
+        Map<FormattedCharSequence, GuiMessage.Line> lookup = EmojiTooltip.buildLineLookup(
+            ((ChatComponentAccessor) minecraft.gui.getChat()).twemoji$trimmedMessages()
+        );
+        EmojiTooltip.ChatCollector collector = new EmojiTooltip.ChatCollector(self.getFont(), mouseX, mouseY, lookup);
         minecraft.gui.getChat().captureClickableText(collector, minecraft.getWindow().getGuiScaledHeight(), minecraft.gui.getGuiTicks(), this.displayMode);
         return collector.result();
     }

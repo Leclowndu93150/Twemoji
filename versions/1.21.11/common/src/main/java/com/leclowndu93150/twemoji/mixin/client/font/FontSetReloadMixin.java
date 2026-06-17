@@ -31,7 +31,7 @@ public abstract class FontSetReloadMixin {
     private List<GlyphProvider.Conditional> twemoji$augmentProviders(List<GlyphProvider.Conditional> providers) {
         Identifier name = ((GlyphStitcherAccessor) this.stitcher).twemoji$texturePrefix();
         if (!Minecraft.DEFAULT_FONT.equals(name)) return providers;
-        List<GlyphProvider.Conditional> extra = TwemojiFontInjection.buildProviders();
+        List<GlyphProvider.Conditional> extra = TwemojiFontInjection.awaitProvidersToInject();
         if (extra.isEmpty()) return providers;
         List<GlyphProvider.Conditional> combined = new ArrayList<>(extra);
         combined.addAll(providers);

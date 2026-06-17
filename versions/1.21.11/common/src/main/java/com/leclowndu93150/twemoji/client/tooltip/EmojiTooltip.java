@@ -1,7 +1,9 @@
 package com.leclowndu93150.twemoji.client.tooltip;
 
+import com.leclowndu93150.twemoji.client.compat.ChatHeadsCompat;
 import com.leclowndu93150.twemoji.client.render.EmojiSprite;
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
+import net.minecraft.client.GuiMessage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.ActiveTextCollector;
 import net.minecraft.client.gui.Font;
@@ -18,6 +20,10 @@ import org.joml.Vector2f;
 import org.jspecify.annotations.Nullable;
 import com.leclowndu93150.twemoji.client.config.EmojiConfig;
 import com.leclowndu93150.twemoji.client.registry.EmojiRegistry;
+
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 
 public final class EmojiTooltip {
 
@@ -100,9 +106,17 @@ public final class EmojiTooltip {
     }
 
     public static @Nullable Hit hitFormatted(Font font, FormattedCharSequence text, int x, int y, int mouseX, int mouseY) {
-        ChatCollector collector = new ChatCollector(font, mouseX, mouseY);
+        ChatCollector collector = new ChatCollector(font, mouseX, mouseY, null);
         collector.accept(TextAlignment.LEFT, x, y, text);
         return collector.result();
+    }
+
+    public static Map<FormattedCharSequence, GuiMessage.Line> buildLineLookup(List<GuiMessage.Line> lines) {
+        Map<FormattedCharSequence, GuiMessage.Line> lookup = new IdentityHashMap<>(lines.size());
+        for (GuiMessage.Line line : lines) {
+            lookup.put(line.content(), line);
+        }
+        return lookup;
     }
 
     public static void requestHoverCursor(GuiGraphics graphics, @Nullable Hit hit) {
@@ -149,13 +163,15 @@ public final class EmojiTooltip {
         private final Font font;
         private final int mouseX;
         private final int mouseY;
+        private final @Nullable Map<FormattedCharSequence, GuiMessage.Line> lineLookup;
         private ActiveTextCollector.Parameters defaultParameters = INITIAL;
         private @Nullable Hit result;
 
-        public ChatCollector(Font font, int mouseX, int mouseY) {
+        public ChatCollector(Font font, int mouseX, int mouseY, @Nullable Map<FormattedCharSequence, GuiMessage.Line> lineLookup) {
             this.font = font;
             this.mouseX = mouseX;
             this.mouseY = mouseY;
+            this.lineLookup = lineLookup;
         }
 
         @Override
@@ -176,7 +192,14 @@ public final class EmojiTooltip {
             Vector2f localMouse = inverse.transformPosition(this.mouseX, this.mouseY, new Vector2f());
             int top = y - 1;
             if (localMouse.y() < top || localMouse.y() >= top + 9) return;
-            int leftX = alignment.calculateLeft(anchorX, this.font, text);
+            int chatHeadsOffset = 0;
+            if (this.lineLookup != null) {
+                GuiMessage.Line line = this.lineLookup.get(text);
+                if (line != null) {
+                    chatHeadsOffset = ChatHeadsCompat.chatOffset(line);
+                }
+            }
+            int leftX = alignment.calculateLeft(anchorX, this.font, text) + chatHeadsOffset;
 
             int[] cursorX = {leftX};
             text.accept((position, style, codepoint) -> {

@@ -8,11 +8,13 @@
   ],
   "client": [
     "client.chat.ChatScreenMixin",
+    "client.chat.accessor.ChatComponentAccessor",
     "client.chat.accessor.CommandSuggestionsAccessor",
     "client.chat.CommandSuggestionsMixin",
     "client.chat.accessor.SuggestionsListAccessor",
     "client.chat.SuggestionsListMixin",
     "client.font.GlyphStitcherAccessor",
+    "client.font.FontManagerAccessor",
     "client.font.FontManagerMixin",
     "client.font.FontSetReloadMixin",
     "client.font.FontMixin",

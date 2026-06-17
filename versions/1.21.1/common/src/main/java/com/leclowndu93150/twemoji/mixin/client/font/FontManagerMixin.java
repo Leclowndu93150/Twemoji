@@ -8,6 +8,7 @@ import net.minecraft.util.profiling.ProfilerFiller;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.concurrent.CompletableFuture;
@@ -17,7 +18,7 @@ import java.util.concurrent.Executor;
 public abstract class FontManagerMixin {
 
     @Inject(method = "reload", at = @At("HEAD"))
-    private void twemoji$captureManager(
+    private void twemoji$prepareInjection(
         PreparableReloadListener.PreparationBarrier barrier,
         ResourceManager resourceManager,
         ProfilerFiller prepProfiler,
@@ -26,6 +27,11 @@ public abstract class FontManagerMixin {
         Executor reloadExecutor,
         CallbackInfoReturnable<CompletableFuture<Void>> cir
     ) {
-        TwemojiFontInjection.setResourceManager(resourceManager);
+        TwemojiFontInjection.prepare(resourceManager, prepExecutor);
+    }
+
+    @Inject(method = "apply", at = @At("RETURN"))
+    private void twemoji$registerForClose(CallbackInfo ci) {
+        ((FontManagerAccessor) this).twemoji$providersToClose().addAll(TwemojiFontInjection.drainLoadedProvidersForClose());
     }
 }

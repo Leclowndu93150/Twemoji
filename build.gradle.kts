@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.leclowndu93150"
-version = "1.0.3"
+version = "1.0.5"
 
 prism {
     metadata {
@@ -39,15 +39,20 @@ prism {
 
             dependencies {
                 modCompileOnly("curse.maven:modmenu-308702:5162837")
+                modRuntimeOnly("curse.maven:chat-heads-407206:8244418")
             }
 
             publishingDependencies {
                 requires("fabric-api")
                 optional("modmenu")
+                optional("chat_heads")
             }
         }
         forge {
             loaderVersion = "47.4.10"
+            dependencies {
+                modRuntimeOnly("curse.maven:chat-heads-407206:8244416")
+            }
         }
     }
 
@@ -58,15 +63,20 @@ prism {
 
             dependencies {
                 modCompileOnly("curse.maven:modmenu-308702:7808443")
+                modRuntimeOnly("curse.maven:chat-heads-407206:8244450")
             }
 
             publishingDependencies {
                 requires("fabric-api")
                 optional("modmenu")
+                optional("chat_heads")
             }
         }
         neoforge {
             loaderVersion = "21.1.228"
+            dependencies {
+                modRuntimeOnly("curse.maven:chat-heads-407206:8244448")
+            }
         }
     }
 
@@ -77,15 +87,20 @@ prism {
 
             dependencies {
                 modCompileOnly("curse.maven:modmenu-308702:7808841")
+                modRuntimeOnly("curse.maven:chat-heads-407206:8174612")
             }
 
             publishingDependencies {
                 requires("fabric-api")
                 optional("modmenu")
+                optional("chat_heads")
             }
         }
         neoforge {
             loaderVersion = "21.11.42"
+            dependencies {
+                modRuntimeOnly("curse.maven:chat-heads-407206:8174609")
+            }
         }
     }
 
@@ -96,15 +111,20 @@ prism {
 
             dependencies {
                 implementation("curse.maven:modmenu-308702:8065321")
+                modRuntimeOnly("curse.maven:chat-heads-407206:8174615")
             }
 
             publishingDependencies {
                 requires("fabric-api")
                 optional("modmenu")
+                optional("chat_heads")
             }
         }
         neoforge {
             loaderVersion = "26.1.2.41-beta"
+            dependencies {
+                modRuntimeOnly("curse.maven:chat-heads-407206:8174614")
+            }
         }
     }
 

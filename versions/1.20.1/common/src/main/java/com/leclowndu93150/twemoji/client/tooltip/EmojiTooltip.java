@@ -1,5 +1,6 @@
 package com.leclowndu93150.twemoji.client.tooltip;
 
+import com.leclowndu93150.twemoji.client.compat.ChatHeadsCompat;
 import com.leclowndu93150.twemoji.client.config.EmojiConfig;
 import com.leclowndu93150.twemoji.client.registry.EmojiRegistry;
 import com.leclowndu93150.twemoji.client.render.EmojiSprite;
@@ -133,6 +134,8 @@ public final class EmojiTooltip {
 
         GuiMessage.Line line = lines.get(lineIndex);
         FormattedCharSequence content = line.content();
+        int chatHeadsOffset = ChatHeadsCompat.chatOffset(line);
+        double localChatX = chatX - chatHeadsOffset;
 
         Font font = minecraft.font;
         int[] cursorPx = {0};
@@ -142,7 +145,7 @@ public final class EmojiTooltip {
         content.accept((position, style, codepoint) -> {
             int width = Math.max(1, font.width(FormattedCharSequence.forward(new String(Character.toChars(codepoint)), style)));
             EmojiRegistry.EmojiEntry candidate = EmojiRegistry.INSTANCE.entryForCodepoint(codepoint);
-            if (candidate != null && chatX >= cursorPx[0] && chatX < cursorPx[0] + width) {
+            if (candidate != null && localChatX >= cursorPx[0] && localChatX < cursorPx[0] + width) {
                 found[0] = candidate;
                 foundLeftPx[0] = cursorPx[0];
                 foundWidthPx[0] = width;
@@ -152,8 +155,8 @@ public final class EmojiTooltip {
             return true;
         });
         if (found[0] == null) return null;
-        int hitLeftScreen = Math.round((4 + foundLeftPx[0]) * scale);
-        int hitRightScreen = Math.round((4 + foundLeftPx[0] + foundWidthPx[0]) * scale);
+        int hitLeftScreen = Math.round((4 + chatHeadsOffset + foundLeftPx[0]) * scale);
+        int hitRightScreen = Math.round((4 + chatHeadsOffset + foundLeftPx[0] + foundWidthPx[0]) * scale);
         int hitTopScreen = Math.round((textTopLocal - 1) * scale);
         int hitBottomScreen = Math.round((textTopLocal - 1 + 9) * scale);
         return new Hit(found[0], hitLeftScreen, hitTopScreen, hitRightScreen, hitBottomScreen);
