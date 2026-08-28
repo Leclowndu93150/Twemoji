@@ -24,37 +24,54 @@ public final class TwemojiFontInjection {
     private static final ResourceLocation INTERNAL_FONT_ID = ResourceLocation.fromNamespaceAndPath(Twemoji.MOD_ID, "twemoji_internal/default.json");
     private static final String INTERNAL_FONT_PATH = "/assets/twemoji/twemoji_internal/default.json";
 
-    private static volatile CompletableFuture<List<GlyphProvider.Conditional>> pending = CompletableFuture.completedFuture(List.of());
-    private static volatile List<GlyphProvider.Conditional> lastLoaded = List.of();
+    private static final Object LOCK = new Object();
+
+    private static CompletableFuture<List<GlyphProvider.Conditional>> pending = CompletableFuture.completedFuture(List.of());
+    private static List<GlyphProvider.Conditional> injected = List.of();
+    private static final List<GlyphProvider> superseded = new ArrayList<>();
 
     private TwemojiFontInjection() {}
 
     public static void prepare(ResourceManager resourceManager, Executor executor) {
-        pending = CompletableFuture.supplyAsync(() -> loadProviders(resourceManager), executor)
+        CompletableFuture<List<GlyphProvider.Conditional>> loaded = CompletableFuture.supplyAsync(() -> loadProviders(resourceManager), executor)
             .exceptionally(error -> {
                 Twemoji.LOGGER.warn("Failed to prepare injected Twemoji font providers", error);
                 return List.of();
             });
+        synchronized (LOCK) {
+            for (GlyphProvider.Conditional provider : injected) {
+                superseded.add(provider.provider());
+            }
+            injected = List.of();
+            pending = loaded;
+        }
     }
 
     public static List<GlyphProvider.Conditional> awaitProvidersToInject() {
+        CompletableFuture<List<GlyphProvider.Conditional>> future;
+        synchronized (LOCK) {
+            future = pending;
+        }
+        List<GlyphProvider.Conditional> loaded;
         try {
-            List<GlyphProvider.Conditional> loaded = pending.join();
-            lastLoaded = loaded;
-            return loaded;
+            loaded = future.join();
         } catch (Exception e) {
             Twemoji.LOGGER.warn("Failed to await injected Twemoji font providers", e);
             return List.of();
         }
+        synchronized (LOCK) {
+            if (future == pending) injected = loaded;
+        }
+        return loaded;
     }
 
     public static List<GlyphProvider> drainLoadedProvidersForClose() {
-        List<GlyphProvider.Conditional> snapshot = lastLoaded;
-        if (snapshot.isEmpty()) return List.of();
-        lastLoaded = List.of();
-        List<GlyphProvider> raw = new ArrayList<>(snapshot.size());
-        for (GlyphProvider.Conditional c : snapshot) raw.add(c.provider());
-        return raw;
+        synchronized (LOCK) {
+            if (superseded.isEmpty()) return List.of();
+            List<GlyphProvider> snapshot = new ArrayList<>(superseded);
+            superseded.clear();
+            return snapshot;
+        }
     }
 
     private static List<GlyphProvider.Conditional> loadProviders(ResourceManager resourceManager) {

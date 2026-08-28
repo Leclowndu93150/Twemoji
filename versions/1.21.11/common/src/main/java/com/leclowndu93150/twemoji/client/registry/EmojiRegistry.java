@@ -6,6 +6,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.reflect.TypeToken;
 import com.leclowndu93150.twemoji.Twemoji;
+import com.leclowndu93150.twemoji.server.ServerEmojiLoader;
 import com.leclowndu93150.twemoji.client.render.EmojiSprite;
 import com.leclowndu93150.twemoji.client.render.glyph.StaticBakedGlyph;
 import com.leclowndu93150.twemoji.network.payload.SyncedEmoji;
@@ -312,12 +313,9 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
     }
 
     private int resolveUniqueSyncedCodepoint(int requested, Set<Integer> used) {
-        if (!used.contains(requested)) return requested;
-        for (int cp = 0xE000; cp <= 0xF8FF; cp++) {
-            if (!used.contains(cp)) return cp;
-        }
-        for (int cp = 0xF0000; cp <= 0xFFFFD; cp++) {
-            if (!used.contains(cp)) return cp;
+        if (!used.contains(requested) && !isBuiltinCodepoint(requested)) return requested;
+        for (int cp = ServerEmojiLoader.STATIC_CODEPOINT_START; cp <= ServerEmojiLoader.CODEPOINT_LIMIT; cp++) {
+            if (!used.contains(cp) && !isBuiltinCodepoint(cp)) return cp;
         }
         return requested;
     }

@@ -2,9 +2,7 @@ package com.leclowndu93150.twemoji.mixin.client.font;
 
 import com.leclowndu93150.twemoji.client.font.TwemojiFontInjection;
 import com.mojang.blaze3d.font.GlyphProvider;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.font.FontSet;
-import net.minecraft.resources.ResourceLocation;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -22,8 +20,6 @@ public abstract class FontSetReloadMixin {
         index = 1
     )
     private List<GlyphProvider> twemoji$augmentProviders(List<GlyphProvider> providers) {
-        ResourceLocation name = ((FontSetAccessor) (Object) this).twemoji$name();
-        if (!Minecraft.DEFAULT_FONT.equals(name)) return providers;
         List<GlyphProvider> extra = TwemojiFontInjection.awaitProvidersToInject();
         if (extra.isEmpty()) return providers;
         List<GlyphProvider> combined = new ArrayList<>(extra);

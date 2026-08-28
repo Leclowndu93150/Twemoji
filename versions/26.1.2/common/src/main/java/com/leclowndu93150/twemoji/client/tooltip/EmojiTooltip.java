@@ -47,6 +47,18 @@ public final class EmojiTooltip {
     private EmojiTooltip() {
     }
 
+    private static EmojiTooltip.@Nullable Hit pending;
+
+    public static void setPending(EmojiTooltip.@Nullable Hit hit) {
+        pending = hit;
+    }
+
+    public static void renderPending(GuiGraphicsExtractor graphics, int screenWidth, int screenHeight) {
+        Hit hit = pending;
+        pending = null;
+        render(graphics, Minecraft.getInstance().font, screenWidth, screenHeight, hit);
+    }
+
     public static void render(GuiGraphicsExtractor graphics, Font font, int screenWidth, int screenHeight, @Nullable Hit hit) {
         if (hit == null || !EmojiConfig.get().isHoverTooltipsEnabled()) return;
         EmojiRegistry.EmojiEntry entry = hit.entry();

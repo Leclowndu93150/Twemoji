@@ -5,6 +5,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.leclowndu93150.twemoji.Twemoji;
+import com.leclowndu93150.twemoji.server.ServerEmojiLoader;
 import com.leclowndu93150.twemoji.client.render.glyph.AnimatedBakedGlyph;
 import com.leclowndu93150.twemoji.network.payload.SyncedEmoji;
 import com.mojang.blaze3d.platform.NativeImage;
@@ -59,10 +60,10 @@ public final class AnimatedEmojiRegistry {
 
     private static int resolveUniqueCodepoint(int requested, Set<Integer> used) {
         if (!EmojiRegistry.INSTANCE.isBuiltinCodepoint(requested) && !used.contains(requested)) return requested;
-        for (int cp = 0xF000; cp <= 0xF8FF; cp++) {
+        for (int cp = ServerEmojiLoader.ANIMATED_CODEPOINT_START; cp <= ServerEmojiLoader.CODEPOINT_LIMIT; cp++) {
             if (!EmojiRegistry.INSTANCE.isBuiltinCodepoint(cp) && !used.contains(cp)) return cp;
         }
-        for (int cp = 0xE000; cp <= 0xEFFF; cp++) {
+        for (int cp = ServerEmojiLoader.STATIC_CODEPOINT_START; cp < ServerEmojiLoader.ANIMATED_CODEPOINT_START; cp++) {
             if (!EmojiRegistry.INSTANCE.isBuiltinCodepoint(cp) && !used.contains(cp)) return cp;
         }
         return requested;

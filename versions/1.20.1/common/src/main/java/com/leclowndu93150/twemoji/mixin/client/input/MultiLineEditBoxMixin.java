@@ -64,7 +64,7 @@ public abstract class MultiLineEditBoxMixin implements EmojiSuggestionHost {
         EmojiTooltip.Hit hit = this.twemoji$emojiTooltipHit(mouseX, mouseY);
         EmojiTooltip.renderHoverHighlight(graphics, hit);
         EmojiTooltip.requestHoverCursor(graphics, hit);
-        EmojiTooltip.render(graphics, this.font, Minecraft.getInstance().getWindow().getGuiScaledWidth(), Minecraft.getInstance().getWindow().getGuiScaledHeight(), hit);
+        EmojiTooltip.setPending(hit);
         if (!self.isFocused() || !self.visible) {
             this.twemoji$suggestions().hide();
             return;

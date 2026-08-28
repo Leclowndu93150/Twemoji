@@ -9,7 +9,9 @@ import com.leclowndu93150.twemoji.client.render.glyph.UntintedBakedGlyph;
 import com.mojang.blaze3d.font.GlyphInfo;
 import net.minecraft.client.gui.font.FontSet;
 import net.minecraft.client.gui.font.glyphs.BakedGlyph;
+import net.minecraft.client.gui.font.glyphs.SpecialGlyphs;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -17,8 +19,12 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 @Mixin(FontSet.class)
 public class FontSetSourceMixin {
 
-    @Inject(method = "getGlyph(I)Lnet/minecraft/client/gui/font/glyphs/BakedGlyph;", at = @At("HEAD"), cancellable = true)
+    @Shadow
+    private BakedGlyph missingGlyph;
+
+    @Inject(method = "getGlyph(I)Lnet/minecraft/client/gui/font/glyphs/BakedGlyph;", at = @At("RETURN"), cancellable = true)
     private void twemoji$injectCustomGlyph(int codepoint, CallbackInfoReturnable<BakedGlyph> cir) {
+        if (cir.getReturnValue() != this.missingGlyph) return;
         if (!AnimatedEmojiRegistry.INSTANCE.hasAny() && !EmojiRegistry.INSTANCE.hasSyncedStaticGlyphs()) return;
         AnimatedBakedGlyph animated = AnimatedEmojiRegistry.INSTANCE.bakedGlyph(codepoint);
         if (animated != null) {
@@ -38,8 +44,9 @@ public class FontSetSourceMixin {
         }
     }
 
-    @Inject(method = "getGlyphInfo(IZ)Lcom/mojang/blaze3d/font/GlyphInfo;", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "getGlyphInfo(IZ)Lcom/mojang/blaze3d/font/GlyphInfo;", at = @At("RETURN"), cancellable = true)
     private void twemoji$injectCustomGlyphInfo(int codepoint, boolean filterFishy, CallbackInfoReturnable<GlyphInfo> cir) {
+        if (cir.getReturnValue() != SpecialGlyphs.MISSING) return;
         if (!AnimatedEmojiRegistry.INSTANCE.hasAny() && !EmojiRegistry.INSTANCE.hasSyncedStaticGlyphs()) return;
         AnimatedBakedGlyph animated = AnimatedEmojiRegistry.INSTANCE.bakedGlyph(codepoint);
         if (animated != null) {

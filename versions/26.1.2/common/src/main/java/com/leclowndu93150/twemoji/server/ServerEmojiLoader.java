@@ -53,8 +53,9 @@ public final class ServerEmojiLoader extends SimplePreparableReloadListener<Serv
 
     public static final ServerEmojiLoader INSTANCE = new ServerEmojiLoader();
 
-    public static final int STATIC_CODEPOINT_START = 0xE000;
-    public static final int ANIMATED_CODEPOINT_START = 0xF000;
+    public static final int STATIC_CODEPOINT_START = 0xF1000;
+    public static final int ANIMATED_CODEPOINT_START = 0xF5000;
+    public static final int CODEPOINT_LIMIT = 0xFFFFD;
 
     private static final String EMOJI_PATH = "twemoji/emoji";
     private static final Path URL_CACHE_DIR = Path.of("twemoji_url_cache");
