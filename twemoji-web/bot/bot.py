@@ -1,6 +1,7 @@
 import os
 import random
 import re
+from urllib.parse import parse_qs
 
 import discord
 import requests
@@ -17,6 +18,11 @@ PANEL_ENDPOINT = os.getenv("PANEL_ENDPOINT")
 PANEL_HMAC_KEY = os.getenv("PANEL_HMAC_KEY")
 
 EMOJI_PATTERN = re.compile(r"<(a?):(\w+):(\d+)>")
+CDN_EMOJI_PATTERN = re.compile(
+    r"(?:\[([^\]\n]{1,64})\]\()?"
+    r"https?://(?:cdn\.discordapp\.com|media\.discordapp\.net)/emojis/(\d+)\.(\w+)"
+    r"(?:\?([^\s)\]>]*))?"
+)
 
 REPLIES = [
     "here ya go!",
@@ -35,26 +41,43 @@ if PANEL_ENDPOINT and PANEL_HMAC_KEY:
     metrics.start()
 
 
+def build_emoji(name, emoji_id, animated):
+    if animated:
+        url = f"https://cdn.discordapp.com/emojis/{emoji_id}.gif?size=64"
+    else:
+        url = f"https://cdn.discordapp.com/emojis/{emoji_id}.png?size=64&quality=lossless"
+    return {"name": name, "url": url, "animated": animated}
+
+
 def parse_emojis(content):
-    emojis = []
-    seen_ids = set()
+    found = []
+
     for match in EMOJI_PATTERN.finditer(content):
         animated_flag, name, emoji_id = match.group(1), match.group(2), match.group(3)
+        found.append((match.start(), emoji_id, name, animated_flag == "a"))
+
+    for match in CDN_EMOJI_PATTERN.finditer(content):
+        label, emoji_id, extension, query = match.groups()
+        params = parse_qs(query or "")
+        name = (params.get("name") or [None])[0] or label or f"emoji_{emoji_id}"
+        animated = extension.lower() == "gif" or (params.get("animated") or [""])[0] == "true"
+        found.append((match.start(), emoji_id, name, animated))
+
+    found.sort(key=lambda item: item[0])
+
+    emojis = []
+    seen_ids = set()
+    for _, emoji_id, name, animated in found:
         if emoji_id in seen_ids:
             continue
         seen_ids.add(emoji_id)
-        animated = animated_flag == "a"
-        if animated:
-            url = f"https://cdn.discordapp.com/emojis/{emoji_id}.gif?size=64"
-        else:
-            url = f"https://cdn.discordapp.com/emojis/{emoji_id}.png?size=64&quality=lossless"
-        emojis.append({"name": name, "url": url, "animated": animated})
+        emojis.append(build_emoji(name, emoji_id, animated))
     return emojis
 
 
 @client.event
 async def on_ready():
-    print(f"logged in as {client.user} :3")
+    print(f"logged in as {client.user} :3", flush=True)
 
 
 @client.event

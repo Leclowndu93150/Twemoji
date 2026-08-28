@@ -45,7 +45,7 @@ prism {
             publishingDependencies {
                 requires("fabric-api")
                 optional("modmenu")
-                optional("chat_heads")
+                optional("chat-heads")
             }
         }
         forge {
@@ -69,7 +69,7 @@ prism {
             publishingDependencies {
                 requires("fabric-api")
                 optional("modmenu")
-                optional("chat_heads")
+                optional("chat-heads")
             }
         }
         neoforge {
@@ -93,7 +93,7 @@ prism {
             publishingDependencies {
                 requires("fabric-api")
                 optional("modmenu")
-                optional("chat_heads")
+                optional("chat-heads")
             }
         }
         neoforge {
@@ -117,7 +117,7 @@ prism {
             publishingDependencies {
                 requires("fabric-api")
                 optional("modmenu")
-                optional("chat_heads")
+                optional("chat-heads")
             }
         }
         neoforge {
