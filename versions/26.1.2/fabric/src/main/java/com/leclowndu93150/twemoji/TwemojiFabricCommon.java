@@ -8,7 +8,10 @@ import com.leclowndu93150.twemoji.server.EmojiRainCommand;
 import com.leclowndu93150.twemoji.server.EmojiUploadCommand;
 import com.leclowndu93150.twemoji.server.ServerEmojiLoader;
 import com.leclowndu93150.twemoji.server.ServerEmojiSender;
+import com.leclowndu93150.twemoji.client.TwemojiClient;
+import net.fabricmc.api.EnvType;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
@@ -23,6 +26,10 @@ public class TwemojiFabricCommon implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
+            TwemojiClient.init(FabricLoader.getInstance().getConfigDir());
+        }
+
         PayloadTypeRegistry.clientboundPlay().register(EmojiSyncStartPayload.TYPE, EmojiSyncStartPayload.STREAM_CODEC);
         PayloadTypeRegistry.clientboundPlay().register(EmojiSyncChunkPayload.TYPE, EmojiSyncChunkPayload.STREAM_CODEC);
         PayloadTypeRegistry.clientboundPlay().register(EmojiSyncEndPayload.TYPE, EmojiSyncEndPayload.STREAM_CODEC);

@@ -1,6 +1,7 @@
 package com.leclowndu93150.twemoji;
 
 import com.leclowndu93150.twemoji.client.command.EmojiExporter;
+import com.leclowndu93150.twemoji.client.TwemojiClient;
 import com.leclowndu93150.twemoji.client.config.EmojiConfig;
 import com.leclowndu93150.twemoji.client.picker.TwemojiKeyMappings;
 import com.leclowndu93150.twemoji.client.registry.EmojiRegistry;
@@ -34,7 +35,7 @@ public final class TwemojiNeoForgeClient {
     private TwemojiNeoForgeClient() {}
 
     public static void init(IEventBus modBus) {
-        EmojiConfig.init(FMLPaths.CONFIGDIR.get());
+        TwemojiClient.init(FMLPaths.CONFIGDIR.get());
 
         modBus.addListener(RegisterClientReloadListenersEvent.class, event ->
             event.registerReloadListener(EmojiRegistry.INSTANCE)

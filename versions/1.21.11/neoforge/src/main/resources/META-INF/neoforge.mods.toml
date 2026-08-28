@@ -28,3 +28,17 @@ config = "${mod_id}.mixins.json"
 
 [[mixins]]
 config = "${mod_id}.neoforge.mixins.json"
+
+[[dependencies.${mod_id}]]
+modId = "baguettelib"
+type = "required"
+versionRange = "[2.0.5,)"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies.${mod_id}]]
+modId = "yet_another_config_lib_v3"
+type = "required"
+versionRange = "[3.8.1,)"
+ordering = "AFTER"
+side = "CLIENT"

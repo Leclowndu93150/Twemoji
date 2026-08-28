@@ -34,5 +34,19 @@
   "twemoji.command.upload.no_file": "File not found: %s",
   "twemoji.command.upload.failed": "Failed to upload emoji: %s",
   "twemoji.key.picker": "Open emoji picker",
-  "key.category.twemoji.main": "Twemoji"
+  "key.category.twemoji.main": "Twemoji",
+  "twemoji.config.title": "Twemoji",
+  "twemoji.config.category.general": "General",
+  "twemoji.config.emoticons": "Emoticons",
+  "twemoji.config.emoticons.desc": "Turn typed emoticons such as :) into emojis.",
+  "twemoji.config.suggestions": "Autocomplete",
+  "twemoji.config.suggestions.desc": "Show the shortcode suggestion list while typing.",
+  "twemoji.config.tooltips": "Hover Tooltips",
+  "twemoji.config.tooltips.desc": "Show the emoji name when hovering an emoji in chat.",
+  "twemoji.config.picker_button": "Picker Button",
+  "twemoji.config.picker_button.desc": "Show the emoji button next to the chat box.",
+  "twemoji.config.flags": "Flags",
+  "twemoji.config.flags.desc": "Render regional indicator pairs as country flags.",
+  "twemoji.config.skin_tone": "Skin Tone",
+  "twemoji.config.skin_tone.desc": "Default skin tone applied to supported emojis. 0 is the default yellow."
 }

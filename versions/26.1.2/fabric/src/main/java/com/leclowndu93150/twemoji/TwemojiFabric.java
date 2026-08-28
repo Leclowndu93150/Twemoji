@@ -39,7 +39,6 @@ public class TwemojiFabric implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        EmojiConfig.init(FabricLoader.getInstance().getConfigDir());
         KeyMappingHelper.registerKeyMapping(TwemojiKeyMappings.OPEN_PICKER);
 
         HudElementRegistry.addLast(

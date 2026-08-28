@@ -14,6 +14,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import com.leclowndu93150.twemoji.client.config.EmojiConfig;
+import com.leclowndu93150.twemoji.client.config.TwemojiConfigScreen;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.screens.Screen;
 import com.leclowndu93150.twemoji.client.registry.EmojiRegistry;
 
 public final class EmojiPicker {
@@ -31,6 +34,7 @@ public final class EmojiPicker {
     private static final int CATEGORY_STEP = 15;
     private static final int BUTTON_SIZE = 9;
     private static final int TONE_BUTTON_SIZE = 18;
+    private static final int GEAR_BUTTON_SIZE = 14;
     private static final int TONE_OPTION_SIZE = 20;
     private static final int PANEL_COLOR = 0xF0131416;
     private static final int RAIL_COLOR = 0xF0070709;
@@ -207,6 +211,11 @@ public final class EmojiPicker {
             return true;
         }
 
+        if (contains(mouseX, mouseY, gearButtonX(x), gearButtonY(y), GEAR_BUTTON_SIZE, GEAR_BUTTON_SIZE)) {
+            this.openConfigScreen();
+            return true;
+        }
+
         if (contains(mouseX, mouseY, toneButtonX(x), toneButtonY(y), TONE_BUTTON_SIZE, TONE_BUTTON_SIZE)) {
             this.toneOpen = !this.toneOpen;
             this.searchFocused = false;
@@ -379,11 +388,27 @@ public final class EmojiPicker {
         graphics.drawString(this.font, "o", searchX + searchWidth(x) - 11, searchY + 4, MUTED_COLOR, false);
         graphics.fill(searchX + searchWidth(x) - 5, searchY + 12, searchX + searchWidth(x) - 2, searchY + 13, MUTED_COLOR);
 
+        int gearX = gearButtonX(x);
+        int gearY = gearButtonY(y);
+        boolean gearHovered = contains(mouseX, mouseY, gearX, gearY, GEAR_BUTTON_SIZE, GEAR_BUTTON_SIZE);
+        if (gearHovered) graphics.fill(gearX - 1, gearY - 1, gearX + GEAR_BUTTON_SIZE + 1, gearY + GEAR_BUTTON_SIZE + 1, HOVER_COLOR);
+        EmojiRegistry.EmojiEntry gear = EmojiRegistry.INSTANCE.get("gear");
+        if (gear != null) {
+            this.renderSprite(graphics, EmojiRegistry.INSTANCE.spriteForTone(gear, 0), gearX, gearY, GEAR_BUTTON_SIZE);
+        }
+
         int toneX = toneButtonX(x);
         int toneY = toneButtonY(y);
         boolean toneHovered = contains(mouseX, mouseY, toneX, toneY, TONE_BUTTON_SIZE, TONE_BUTTON_SIZE);
         if (toneHovered || this.toneOpen) graphics.fill(toneX - 1, toneY - 1, toneX + TONE_BUTTON_SIZE + 1, toneY + TONE_BUTTON_SIZE + 1, HOVER_COLOR);
         this.renderToneEmoji(graphics, EmojiConfig.get().getSkinTone(), toneX, toneY, TONE_BUTTON_SIZE);
+    }
+
+    private void openConfigScreen() {
+        Minecraft client = Minecraft.getInstance();
+        Screen parent = client.screen;
+        this.close();
+        client.setScreen(TwemojiConfigScreen.create(parent));
     }
 
     private void renderCategories(GuiGraphics graphics, int mouseX, int mouseY, int x, int y) {
@@ -767,7 +792,15 @@ public final class EmojiPicker {
     }
 
     private static int searchWidth(int panelX) {
-        return toneButtonX(panelX) - searchX(panelX) - 5;
+        return gearButtonX(panelX) - searchX(panelX) - 5;
+    }
+
+    private static int gearButtonX(int panelX) {
+        return toneButtonX(panelX) - GEAR_BUTTON_SIZE - 3;
+    }
+
+    private static int gearButtonY(int panelY) {
+        return panelY + 5;
     }
 
     private static int toneButtonX(int panelX) {

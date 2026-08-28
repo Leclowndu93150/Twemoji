@@ -40,7 +40,6 @@ public class TwemojiFabric implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        EmojiConfig.init(FabricLoader.getInstance().getConfigDir());
         KeyBindingHelper.registerKeyBinding(TwemojiKeyMappings.OPEN_PICKER);
 
         HudRenderCallback.EVENT.register((GuiGraphics graphics, DeltaTracker tickDelta) -> {

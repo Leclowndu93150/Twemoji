@@ -42,6 +42,10 @@ public final class EmojiSuggestions {
     }
 
     public void update(String value, int cursor, int anchorX, int anchorY, int screenWidth) {
+        if (!EmojiConfig.get().isSuggestionsEnabled()) {
+            this.hide();
+            return;
+        }
         Match match = findMatch(value, cursor);
         if (match == null) {
             this.hide();

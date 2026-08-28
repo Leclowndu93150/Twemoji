@@ -2,6 +2,7 @@ package com.leclowndu93150.twemoji;
 
 import com.leclowndu93150.twemoji.client.suggestion.EmojiCommandSuggestions;
 import com.leclowndu93150.twemoji.client.config.EmojiConfig;
+import com.leclowndu93150.twemoji.client.TwemojiClient;
 import com.leclowndu93150.twemoji.client.command.EmojiExporter;
 import com.leclowndu93150.twemoji.client.render.EmojiRain;
 import com.leclowndu93150.twemoji.client.registry.EmojiRegistry;
@@ -40,7 +41,7 @@ public final class TwemojiNeoForgeClient {
     private TwemojiNeoForgeClient() {}
 
     public static void init(IEventBus modBus) {
-        EmojiConfig.init(FMLPaths.CONFIGDIR.get());
+        TwemojiClient.init(FMLPaths.CONFIGDIR.get());
 
         Identifier emojiRegistryId = Identifier.fromNamespaceAndPath(Twemoji.MOD_ID, "emoji_registry");
         modBus.addListener(AddClientReloadListenersEvent.class, event -> {
