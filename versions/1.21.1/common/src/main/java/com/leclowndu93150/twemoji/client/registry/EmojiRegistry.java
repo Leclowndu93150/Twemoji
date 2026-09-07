@@ -8,6 +8,7 @@ import com.google.gson.reflect.TypeToken;
 import com.leclowndu93150.twemoji.Twemoji;
 import com.leclowndu93150.twemoji.server.ServerEmojiLoader;
 import com.leclowndu93150.twemoji.client.render.EmojiSprite;
+import com.leclowndu93150.twemoji.client.render.TwemojiSheets;
 import com.leclowndu93150.twemoji.client.render.glyph.StaticBakedGlyph;
 import com.leclowndu93150.twemoji.network.payload.SyncedEmoji;
 import com.mojang.blaze3d.platform.NativeImage;
@@ -35,7 +36,7 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
     private static final ResourceLocation SHORTCODES_ID = ResourceLocation.fromNamespaceAndPath("emoji_shortcodes", "lang/en_us.json");
     private static final ResourceLocation REMAPPINGS_ID = ResourceLocation.fromNamespaceAndPath("emoji_remappings", "lang/en_us.json");
     private static final ResourceLocation EMOJILIB_ID = ResourceLocation.fromNamespaceAndPath("twemoji", "emojilib.json");
-    private static final ResourceLocation FONT_ID = ResourceLocation.fromNamespaceAndPath("twemoji", "twemoji_internal/default.json");
+    private static final ResourceLocation FONT_ID = ResourceLocation.fromNamespaceAndPath("twemoji", "font/emoji.json");
     private static final ResourceLocation EMOJI_SHEET = ResourceLocation.fromNamespaceAndPath("twemoji", "textures/font/emoji.png");
     private static final ResourceLocation FLAGS_SHEET = ResourceLocation.fromNamespaceAndPath("twemoji", "textures/font/flags.png");
     private static final int SHEET_W = 288;
@@ -226,6 +227,23 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
         if (this.cachedResourceManager != null) rebuildShapingTable(this.cachedResourceManager);
     }
 
+    public boolean rendersInEmojiFont(int codepoint) {
+        if (TwemojiSheets.isStandardEmojiCodepoint(codepoint)) return true;
+        if (codepoint < 0xF0000) return false;
+        return AnimatedEmojiRegistry.INSTANCE.bakedGlyph(codepoint) != null || syncedStaticGlyphs.containsKey(codepoint);
+    }
+
+    public boolean needsShaping(String text) {
+        ShapingTable table = this.shapingTable;
+        int len = text.length();
+        for (int i = 0; i < len; ) {
+            int codepoint = text.codePointAt(i);
+            if (table.isRoot(codepoint) || rendersInEmojiFont(codepoint)) return true;
+            i += Character.charCount(codepoint);
+        }
+        return false;
+    }
+
     public ShapingTable shapingTable() {
         return shapingTable;
     }
@@ -339,7 +357,7 @@ public class EmojiRegistry extends SimplePreparableReloadListener<EmojiRegistry.
 
     public String characterForTone(EmojiEntry entry, int skinTone) {
         EmojiEntry toned = entryForTone(entry, skinTone);
-        return toned != null ? toned.character() : "";
+        return toned != null ? unshape(toned.character()) : "";
     }
 
     public EmojiEntry get(String name) {

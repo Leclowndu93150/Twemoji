@@ -107,7 +107,7 @@ public final class EmojiTooltip {
             int codepoint = text.codePointAt(offset);
             int charWidth = Math.max(1, Math.round(font.width(new String(Character.toChars(codepoint))) * scaleX));
             EmojiRegistry.EmojiEntry candidate = EmojiRegistry.INSTANCE.entryForCodepoint(codepoint);
-            int right = cursorX + charWidth - 1;
+            int right = cursorX + charWidth;
             if (candidate != null && mouseX >= cursorX && mouseX < right) {
                 return new Hit(candidate, cursorX, top, right, top + lineHeight);
             }
@@ -205,24 +205,28 @@ public final class EmojiTooltip {
             int top = y - 1;
             if (localMouse.y() < top || localMouse.y() >= top + 9) return;
             int chatHeadsOffset = 0;
+            ChatHeadsCompat.HeadInsert lineHeadInsert = ChatHeadsCompat.HeadInsert.NONE;
             if (this.lineLookup != null) {
                 GuiMessage.Line line = this.lineLookup.get(text);
                 if (line != null) {
                     chatHeadsOffset = ChatHeadsCompat.chatOffset(line);
+                    lineHeadInsert = ChatHeadsCompat.headInsert(line);
                 }
             }
+            ChatHeadsCompat.HeadInsert headInsert = lineHeadInsert;
             int leftX = alignment.calculateLeft(anchorX, this.font, text) + chatHeadsOffset;
 
             int[] cursorX = {leftX};
+            int[] glyphIndex = {0};
             text.accept((position, style, codepoint) -> {
                 if (this.result != null) return false;
+                if (glyphIndex[0]++ == headInsert.index()) cursorX[0] += headInsert.width();
                 EmojiRegistry.EmojiEntry candidate = EmojiRegistry.INSTANCE.entryForCodepoint(codepoint);
                 int width;
                 if (candidate != null) {
                     width = Math.max(1, this.font.width(FormattedCharSequence.forward(new String(Character.toChars(codepoint)), style)));
-                    int rightLimit = cursorX[0] + width - 1;
-                    if (localMouse.x() >= cursorX[0] && localMouse.x() < rightLimit) {
-                        ScreenRectangle bounds = new ScreenRectangle(cursorX[0], top, width - 1, 9).transformMaxBounds(parameters.pose());
+                    if (localMouse.x() >= cursorX[0] && localMouse.x() < cursorX[0] + width) {
+                        ScreenRectangle bounds = new ScreenRectangle(cursorX[0], top, width, 9).transformMaxBounds(parameters.pose());
                         this.result = new Hit(candidate, bounds.left(), bounds.top(), bounds.right(), bounds.bottom());
                         return false;
                     }

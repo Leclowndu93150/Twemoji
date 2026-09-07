@@ -1,10 +1,10 @@
-now requires BaguetteLib and YetAnotherConfigLib
+added support for Minecraft 26.2
 
-added a config screen, open it with the gear in the emoji picker or from the mod list
-added a toggle for the shortcode autocomplete list, for people who type :) on purpose
-the config screen also covers emoticons, hover tooltips, the picker button, country flags and skin tone
+fixed emojis replacing icons from resource packs, so packs like Icons show their own icons again in menus, tooltips and the HUD
+emojis now come from their own font instead of being added to every font, so they can no longer take over characters a resource pack uses
 
-fixed custom emojis stealing characters from resource packs, which turned things like dimension names into random emojis
-fixed emojis not rendering in custom fonts
-fixed a crash when hovering items with Drippy Loading Screen installed
-fixed the emoji hover tooltip being cut off inside books
+fixed emoji hover in chat selecting the wrong emoji when Chat Heads is installed, which also made the last emoji on a line impossible to hover
+fixed the rightmost pixel of an emoji not being hoverable in text boxes, signs and books
+fixed clicking an emoji in a book not copying its shortcode on 1.20.1
+fixed the shadow of text after an emoji being drawn slightly off
+emojis with skin tones or several parts are now written into books and signs as real emojis, so they still show up for players without the mod

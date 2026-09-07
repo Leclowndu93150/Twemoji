@@ -1,5 +1,6 @@
 package com.leclowndu93150.twemoji.mixin.client.font;
 
+import com.leclowndu93150.twemoji.client.render.TwemojiSheets;
 import com.leclowndu93150.twemoji.client.render.glyph.UntintedBakedGlyph;
 import net.minecraft.client.gui.font.glyphs.BakedGlyph;
 import net.minecraft.network.chat.Style;
@@ -17,7 +18,7 @@ public abstract class FontPreparedTextBuilderMixin {
 
     @Inject(method = "accept(ILnet/minecraft/network/chat/Style;Lnet/minecraft/client/gui/font/glyphs/BakedGlyph;)Z", at = @At("HEAD"), cancellable = true)
     private void twemoji$skipEmojiOutline(int position, Style style, BakedGlyph glyph, CallbackInfoReturnable<Boolean> cir) {
-        if (UntintedBakedGlyph.isOutlineRendering() && !this.includeEmpty && glyph instanceof UntintedBakedGlyph) {
+        if (UntintedBakedGlyph.isOutlineRendering() && !this.includeEmpty && glyph instanceof UntintedBakedGlyph && TwemojiSheets.isEmojiFont(style)) {
             cir.setReturnValue(true);
         }
     }

@@ -6,15 +6,19 @@ import com.google.gson.JsonParser;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.ints.IntSets;
+import net.minecraft.network.chat.Style;
+import net.minecraft.resources.ResourceLocation;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
 
 public final class TwemojiSheets {
 
-    private static final String SHORTCODES_PATH = "/assets/emoji_shortcodes/lang/en_us.json";
+    public static final ResourceLocation FONT = ResourceLocation.fromNamespaceAndPath("twemoji", "emoji");
+
+    private static final String FONT_PATH = "/assets/twemoji/font/emoji.json";
+    private static final int PRIVATE_USE_START = 0xF0000;
     private static final IntSet CODEPOINTS = loadCodepoints();
 
     private TwemojiSheets() {}
@@ -23,13 +27,31 @@ public final class TwemojiSheets {
         return CODEPOINTS.contains(codepoint);
     }
 
+    public static boolean isStandardEmojiCodepoint(int codepoint) {
+        return codepoint < PRIVATE_USE_START && CODEPOINTS.contains(codepoint);
+    }
+
+    public static Style withEmojiFont(Style style) {
+        return style.withFont(FONT);
+    }
+
+    public static boolean isEmojiFont(Style style) {
+        return FONT.equals(style.getFont());
+    }
+
     private static IntSet loadCodepoints() {
         IntSet codepoints = new IntOpenHashSet();
-        try (InputStream stream = TwemojiSheets.class.getResourceAsStream(SHORTCODES_PATH)) {
+        try (InputStream stream = TwemojiSheets.class.getResourceAsStream(FONT_PATH)) {
             if (stream == null) return IntSets.emptySet();
             JsonObject root = JsonParser.parseReader(new InputStreamReader(stream, StandardCharsets.UTF_8)).getAsJsonObject();
-            for (Map.Entry<String, JsonElement> entry : root.entrySet()) {
-                entry.getValue().getAsString().codePoints().filter(codepoint -> codepoint != 0).forEach(codepoints::add);
+            JsonElement providers = root.get("providers");
+            if (providers == null) return IntSets.emptySet();
+            for (JsonElement provider : providers.getAsJsonArray()) {
+                JsonElement chars = provider.getAsJsonObject().get("chars");
+                if (chars == null) continue;
+                for (JsonElement row : chars.getAsJsonArray()) {
+                    row.getAsString().codePoints().filter(codepoint -> codepoint != 0).forEach(codepoints::add);
+                }
             }
         } catch (RuntimeException ignored) {
             return IntSets.emptySet();

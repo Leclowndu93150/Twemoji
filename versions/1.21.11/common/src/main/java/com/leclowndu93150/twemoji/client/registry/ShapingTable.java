@@ -45,15 +45,8 @@ public final class ShapingTable {
         return root.children == null || root.children.isEmpty();
     }
 
-    public boolean stringHasCandidate(String s) {
-        if (rootCodepoints.isEmpty()) return false;
-        int len = s.length();
-        for (int i = 0; i < len; ) {
-            int cp = s.codePointAt(i);
-            if (rootCodepoints.contains(cp)) return true;
-            i += Character.charCount(cp);
-        }
-        return false;
+    public boolean isRoot(int codepoint) {
+        return rootCodepoints.contains(codepoint);
     }
 
     public static final class Node {

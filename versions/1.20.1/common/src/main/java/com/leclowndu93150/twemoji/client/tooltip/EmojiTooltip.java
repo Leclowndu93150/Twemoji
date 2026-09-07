@@ -104,7 +104,7 @@ public final class EmojiTooltip {
             int codepoint = text.codePointAt(offset);
             int charWidth = Math.max(1, Math.round(font.width(new String(Character.toChars(codepoint))) * scaleX));
             EmojiRegistry.EmojiEntry candidate = EmojiRegistry.INSTANCE.entryForCodepoint(codepoint);
-            int right = cursorX + charWidth - 1;
+            int right = cursorX + charWidth;
             if (candidate != null && mouseX >= cursorX && mouseX < right) {
                 return new Hit(candidate, cursorX, top, right, top + lineHeight);
             }
@@ -150,11 +150,14 @@ public final class EmojiTooltip {
         double localChatX = chatX - chatHeadsOffset;
 
         Font font = minecraft.font;
+        ChatHeadsCompat.HeadInsert headInsert = ChatHeadsCompat.headInsert(line);
         int[] cursorPx = {0};
+        int[] glyphIndex = {0};
         EmojiRegistry.EmojiEntry[] found = {null};
         int[] foundLeftPx = {0};
         int[] foundWidthPx = {0};
         content.accept((position, style, codepoint) -> {
+            if (glyphIndex[0]++ == headInsert.index()) cursorPx[0] += headInsert.width();
             int width = Math.max(1, font.width(FormattedCharSequence.forward(new String(Character.toChars(codepoint)), style)));
             EmojiRegistry.EmojiEntry candidate = EmojiRegistry.INSTANCE.entryForCodepoint(codepoint);
             if (candidate != null && localChatX >= cursorPx[0] && localChatX < cursorPx[0] + width) {

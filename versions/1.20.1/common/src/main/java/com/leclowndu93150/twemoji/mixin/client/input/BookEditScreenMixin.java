@@ -80,6 +80,13 @@ public abstract class BookEditScreenMixin extends Screen implements EmojiSuggest
         return converted + suffix;
     }
 
+    @Inject(method = "mouseClicked", at = @At("HEAD"), cancellable = true)
+    private void twemoji$mouseClicked(double mouseX, double mouseY, int button, CallbackInfoReturnable<Boolean> cir) {
+        if (button != 0 || this.isSigning) return;
+        EmojiTooltip.Hit hit = this.twemoji$emojiTooltipHit((int) mouseX, (int) mouseY);
+        if (hit != null) cir.setReturnValue(EmojiTooltip.copyShortcode(hit));
+    }
+
     @Inject(method = "keyPressed", at = @At("HEAD"), cancellable = true)
     private void twemoji$keyPressed(int keyCode, int scanCode, int modifiers, CallbackInfoReturnable<Boolean> cir) {
         if (this.twemoji$suggestions().keyPressed(keyCode, this::twemoji$applyEmojiSuggestion)) {

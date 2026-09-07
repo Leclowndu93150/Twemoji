@@ -1,5 +1,6 @@
 package com.leclowndu93150.twemoji.client.registry;
 
+import com.leclowndu93150.twemoji.client.render.TwemojiSheets;
 import net.minecraft.network.chat.Style;
 import net.minecraft.util.FormattedCharSink;
 
@@ -19,6 +20,8 @@ public final class ShapingSink implements FormattedCharSink {
     private int matchPua;
     private boolean stopped;
     private boolean inUse;
+    private Style cachedPlainStyle;
+    private Style cachedEmojiStyle;
 
     private ShapingSink() {}
 
@@ -43,6 +46,8 @@ public final class ShapingSink implements FormattedCharSink {
         this.matchLen = 0;
         this.matchPua = 0;
         this.stopped = false;
+        this.cachedPlainStyle = null;
+        this.cachedEmojiStyle = null;
         for (int i = 0; i < MAX_BUF; i++) this.bufStyles[i] = null;
     }
 
@@ -50,6 +55,8 @@ public final class ShapingSink implements FormattedCharSink {
         this.delegate = null;
         this.table = null;
         this.currentNode = null;
+        this.cachedPlainStyle = null;
+        this.cachedEmojiStyle = null;
         for (int i = 0; i < MAX_BUF; i++) this.bufStyles[i] = null;
         this.inUse = false;
     }
@@ -84,7 +91,7 @@ public final class ShapingSink implements FormattedCharSink {
 
     private boolean passthrough(int position, Style style, int codepoint) {
         currentNode = table.root();
-        boolean ok = delegate.accept(position, style, codepoint);
+        boolean ok = delegate.accept(position, styleFor(style, codepoint), codepoint);
         if (!ok) stopped = true;
         return ok;
     }
@@ -93,14 +100,16 @@ public final class ShapingSink implements FormattedCharSink {
         if (bufLen == 0) return true;
         int emitted = 0;
         if (matchLen > 0) {
-            if (!delegate.accept(bufPositions[0], bufStyles[0], matchPua)) {
+            int end = bufPositions[matchLen - 1] + Character.charCount(bufCodepoints[matchLen - 1]);
+            int position = Math.max(0, end - Character.charCount(matchPua));
+            if (!delegate.accept(position, emojiStyle(bufStyles[0]), matchPua)) {
                 stopped = true;
                 return false;
             }
             emitted = matchLen;
         }
         for (int i = emitted; i < bufLen; i++) {
-            if (!delegate.accept(bufPositions[i], bufStyles[i], bufCodepoints[i])) {
+            if (!delegate.accept(bufPositions[i], styleFor(bufStyles[i], bufCodepoints[i]), bufCodepoints[i])) {
                 stopped = true;
                 return false;
             }
@@ -109,6 +118,18 @@ public final class ShapingSink implements FormattedCharSink {
         matchLen = 0;
         currentNode = table.root();
         return true;
+    }
+
+    private Style styleFor(Style style, int codepoint) {
+        return EmojiRegistry.INSTANCE.rendersInEmojiFont(codepoint) ? emojiStyle(style) : style;
+    }
+
+    private Style emojiStyle(Style style) {
+        if (style != cachedPlainStyle) {
+            cachedPlainStyle = style;
+            cachedEmojiStyle = TwemojiSheets.withEmojiFont(style);
+        }
+        return cachedEmojiStyle;
     }
 
     public boolean finish() {

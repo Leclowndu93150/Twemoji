@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "com.leclowndu93150"
-version = "1.0.6"
+version = "1.1.0"
 
 prism {
     metadata {
@@ -189,6 +189,47 @@ prism {
                 modCompileOnly("dev.isxander:yet-another-config-lib:3.9.6+26.1-neoforge")
                 modRuntimeOnly("dev.isxander:yet-another-config-lib:3.9.6+26.1-neoforge")
                 modRuntimeOnly("curse.maven:chat-heads-407206:8174614")
+            }
+
+            publishingDependencies {
+                requires("baguettelib")
+                requires("yacl")
+            }
+        }
+    }
+
+    version("26.2") {
+        common {
+            modCompileOnly("com.leclowndu93150.baguettelib:baguettelib-26.2-common:2.0.5")
+            modCompileOnly("dev.isxander:yet-another-config-lib:3.9.6+26.2-neoforge")
+        }
+        fabric {
+            loaderVersion = "0.19.2"
+            fabricApi("0.159.0+26.2")
+
+            dependencies {
+                modImplementation("com.leclowndu93150.baguettelib:baguettelib-26.2-fabric:2.0.5")
+                modCompileOnly("dev.isxander:yet-another-config-lib:3.9.6+26.2-fabric")
+                modRuntimeOnly("dev.isxander:yet-another-config-lib:3.9.6+26.2-fabric")
+                implementation("curse.maven:modmenu-308702:8402669")
+                modRuntimeOnly("curse.maven:chat-heads-407206:8610123")
+            }
+
+            publishingDependencies {
+                requires("fabric-api")
+                requires("baguettelib")
+                requires("yacl")
+                optional("modmenu")
+                optional("chat-heads")
+            }
+        }
+        neoforge {
+            loaderVersion = "26.2.0.79"
+            dependencies {
+                modImplementation("com.leclowndu93150.baguettelib:baguettelib-26.2-neoforge:2.0.5")
+                modCompileOnly("dev.isxander:yet-another-config-lib:3.9.6+26.2-neoforge")
+                modRuntimeOnly("dev.isxander:yet-another-config-lib:3.9.6+26.2-neoforge")
+                modRuntimeOnly("curse.maven:chat-heads-407206:8610121")
             }
 
             publishingDependencies {
