@@ -239,4 +239,45 @@ prism {
         }
     }
 
+    version("26.3") {
+        common {
+            modCompileOnly("com.leclowndu93150.baguettelib:baguettelib-26.3-common:2.0.7")
+            modCompileOnly("dev.isxander:yet-another-config-lib:3.9.7+26.3-neoforge")
+        }
+        fabric {
+            loaderVersion = "0.19.2"
+            fabricApi("0.161.0+26.3")
+
+            dependencies {
+                modImplementation("com.leclowndu93150.baguettelib:baguettelib-26.3-fabric:2.0.7")
+                modCompileOnly("dev.isxander:yet-another-config-lib:3.9.7+26.3-fabric")
+                modRuntimeOnly("dev.isxander:yet-another-config-lib:3.9.7+26.3-fabric")
+                implementation("curse.maven:modmenu-308702:8958984")
+                modRuntimeOnly("curse.maven:chat-heads-407206:8975177")
+            }
+
+            publishingDependencies {
+                requires("fabric-api")
+                requires("baguettelib")
+                requires("yacl")
+                optional("modmenu")
+                optional("chat-heads")
+            }
+        }
+        neoforge {
+            loaderVersion = "26.3.0.31-beta"
+            dependencies {
+                modImplementation("com.leclowndu93150.baguettelib:baguettelib-26.3-neoforge:2.0.7")
+                modCompileOnly("dev.isxander:yet-another-config-lib:3.9.7+26.3-neoforge")
+                modRuntimeOnly("dev.isxander:yet-another-config-lib:3.9.7+26.3-neoforge")
+                modRuntimeOnly("curse.maven:chat-heads-407206:8975176")
+            }
+
+            publishingDependencies {
+                requires("baguettelib")
+                requires("yacl")
+            }
+        }
+    }
+
 }
