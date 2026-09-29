@@ -4,10 +4,9 @@
   "package": "com.leclowndu93150.twemoji.mixin",
   "compatibilityLevel": "JAVA_17",
   "refmap": "twemoji.refmap.json",
-  "mixins": [
-    "StringDecomposerMixin"
-  ],
+  "mixins": [],
   "client": [
+    "StringDecomposerMixin",
     "client.chat.ChatScreenMixin",
     "client.chat.accessor.ChatComponentAccessor",
     "client.chat.accessor.CommandSuggestionsAccessor",

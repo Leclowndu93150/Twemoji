@@ -3,10 +3,9 @@
   "minVersion": "0.8",
   "package": "com.leclowndu93150.twemoji.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": [
-    "StringDecomposerMixin"
-  ],
+  "mixins": [],
   "client": [
+    "StringDecomposerMixin",
     "client.chat.ChatScreenMixin",
     "client.chat.accessor.ChatComponentAccessor",
     "client.chat.accessor.CommandSuggestionsAccessor",
